@@ -1,4 +1,4 @@
-package isec.tp.das.onlinecompiler;
+package isec.tp.das.onlinecompiler.Controllers;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
