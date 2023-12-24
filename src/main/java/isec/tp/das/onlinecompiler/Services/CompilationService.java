@@ -11,22 +11,28 @@ public class CompilationService {
         // Save sourceCode to a file here, then compile that file using gcc
         // Assuming sourceCode is the path to the C/C++ file, if not, save it to a file first
         try {
-            ProcessBuilder builder = new ProcessBuilder("gcc", "-o", "outputExecutable", sourceCode);
-            builder.redirectErrorStream(true); // Combine output and error streams
-            Process process = builder.start();
+            ProcessBuilder compileBuilder = new ProcessBuilder("gcc", "-o", "outputExecutable", sourceCode);
+            compileBuilder.redirectErrorStream(true);
+            Process compileProcess = compileBuilder.start();
+            compileProcess.waitFor();
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            // Run the compiled program
+            ProcessBuilder runBuilder = new ProcessBuilder("./outputExecutable");
+            runBuilder.redirectErrorStream(true);
+            Process runProcess = runBuilder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()));
             String line;
             StringBuilder result = new StringBuilder();
             while ((line = reader.readLine()) != null) {
                 result.append(line).append(System.lineSeparator());
             }
 
-            int exitCode = process.waitFor();
+            int exitCode = runProcess.waitFor();
             if (exitCode == 0) {
-                return "Compilation successful.\n" + result.toString();
+                return "Program executed successfully.\n" + result;
             } else {
-                return "Compilation failed.\n" + result.toString();
+                return "Program execution failed.\n" + result;
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
