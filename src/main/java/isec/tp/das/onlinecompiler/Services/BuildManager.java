@@ -1,15 +1,15 @@
 package isec.tp.das.onlinecompiler.Services;
 
+import isec.tp.das.onlinecompiler.Models.Project;
+
 import java.util.LinkedList;
 import java.util.List;
 
-
 public class BuildManager {
     private static BuildManager instance;
-    private List<String> buildList = new LinkedList<>();
+    private List<Project> projectList = new LinkedList<>();
 
     private BuildManager() {
-        // Private constructor to prevent instantiation
     }
 
     public static synchronized BuildManager getInstance() {
@@ -18,14 +18,46 @@ public class BuildManager {
         }
         return instance;
     }
-    public synchronized void addBuild(String build) {
-        buildList.add(build);
+
+    public synchronized void addProject(Project p) {
+        projectList.add(p);
     }
-    public synchronized String processNextBuild() {
-        if (!buildList.isEmpty()) {
-            return buildList.removeFirst();
+
+    public synchronized Project processNextProject() {
+        if (!projectList.isEmpty()) {
+            return projectList.removeFirst();
         }
         return null;
+    }
+
+    public synchronized List<Project> getAllProjects() {
+        return new LinkedList<>(projectList);
+    }
+
+    public synchronized Project getProjectById(int projectId) {
+        for (Project project : projectList) {
+            if (project.getId() == projectId) {
+                return project;
+            }
+        }
+        return null;
+    }
+
+    public synchronized boolean removeProject(int projectId) {
+        Project projectToRemove = null;
+        for (Project project : projectList) {
+            if (project.getId() == projectId) {
+                projectToRemove = project;
+                break;
+            }
+        }
+
+        if (projectToRemove != null) {
+            projectList.remove(projectToRemove);
+            return true;
+        }
+
+        return false;
     }
 }
 
