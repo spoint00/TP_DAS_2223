@@ -1,13 +1,13 @@
 package isec.tp.das.onlinecompiler.Models;
 
 import java.io.File;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Project {
     private int id;
     private String name;
-    private List<File> files = new ArrayList<>();
+    private List<File> files = new LinkedList<>();
     private String description;
 
     public Project(int id, String name, List<File> files, String description) {

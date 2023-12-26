@@ -27,7 +27,7 @@ public class ProjectRestController {
         bm.addProject(project3);
     }
 
-    @GetMapping("/")
+    @GetMapping
     public List<Project> getAllProjects() {
         return bm.getAllProjects();
     }
