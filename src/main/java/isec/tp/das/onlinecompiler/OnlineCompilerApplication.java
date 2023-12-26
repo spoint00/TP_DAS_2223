@@ -10,7 +10,7 @@ public class OnlineCompilerApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(OnlineCompilerApplication.class, args);
-		Connection connection = Database.initiliazeDatabase();
+//		Connection connection = Database.initializeDatabase();
 	}
 
 }
