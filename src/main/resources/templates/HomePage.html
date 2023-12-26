@@ -1,17 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="">
 <head>
-    <title>Submit Code</title>
+    <meta charset="UTF-8">
+    <title>Home Page</title>
 </head>
 <body>
-<form action="/CompileResults" method="post">
-    <label>
-        <textarea name="code" rows="25" cols="100" placeholder="Enter the file name here!
- Ex:
- file1, file2 etc."></textarea>
-    </label>
-    <br>
-    <input type="submit" value="Compile" />
+
+<h2>Submit Project</h2>
+
+<form action="/submitProject" method="post" enctype="multipart/form-data">
+    <label for="projectName">Project Name:</label>
+    <input type="text" id="projectName" name="projectName" required>
+
+    <br><br>
+
+    <label for="projectFiles"></label>
+    <input type="file" id="projectFiles" name="projectFiles" multiple accept=".c, .cpp, .h" required>
+
+    <br><br>
+
+    <button type="submit">Submit</button>
 </form>
+
 </body>
 </html>
