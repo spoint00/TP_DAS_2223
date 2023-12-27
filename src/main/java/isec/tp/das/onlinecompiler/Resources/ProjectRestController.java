@@ -28,9 +28,10 @@ public class ProjectRestController {
     public ResponseEntity<String> handleFileUpload(@RequestParam("file") MultipartFile file,
                                                    @RequestParam("name") String projectName,
                                                    @RequestParam("description") String projectDescription) {
+//        TODO: falta a parte do save
         // Save the file to a storage location
-//        String filePath = saveFile(file);
-        String filePath = "";
+        String filePath = saveFile(file);
+//        String filePath = "filePath";
 
         // Create a new project
         Project project = new Project();
@@ -63,6 +64,7 @@ public class ProjectRestController {
         }
     }
 
+    //TODO: fix atualizar a lista de files
     @PutMapping("/{projectId}")
     public ResponseEntity<String> updateProject(@PathVariable Long projectId,
                                                 @RequestBody Project updatedProject) {
@@ -89,9 +91,9 @@ public class ProjectRestController {
         return ResponseEntity.ok("Project deleted successfully!");
     }
 
-//    private String saveFile(MultipartFile file) {
-//        // Logic to save the file to a specific location and return its path
-//        // ...
-//        return "path/to/saved/file";
-//    }
+    private String saveFile(MultipartFile file) {
+        // Logic to save the file to a specific location and return its path
+        // ...
+        return "path/to/saved/file";
+    }
 }

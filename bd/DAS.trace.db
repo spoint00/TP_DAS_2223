@@ -1,8 +1,0 @@
-2023-12-26 21:41:33.995809Z jdbc[13]: exception
-org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "PROJECTS" not found (this database is empty); SQL statement:
-SELECT * FROM projects [42104-224]
-2023-12-26 21:44:08.687936Z jdbc[13]: exception
-org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]PROJECT_ID"; expected "PREPARE"; SQL statement:
-PROJECT_ID [42001-224]
-2023-12-26 21:50:58.770128Z jdbc[3]: exception
-org.h2.jdbc.JdbcSQLNonTransientException: The object is already closed [90007-224]
