@@ -1,27 +1,43 @@
 package isec.tp.das.onlinecompiler.Models;
 
-import java.io.File;
+import jakarta.persistence.*;
+
 import java.util.LinkedList;
 import java.util.List;
 
+@Entity
+@Table(name = "projects")
 public class Project {
-    private int id;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
     private String name;
-    private List<File> files = new LinkedList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "project_files", joinColumns = @JoinColumn(name = "project_id"))
+    @Column(name = "file_path")
+    private List<String> filePaths = new LinkedList<>();
+
+    @Column
     private String description;
 
-    public Project(int id, String name, List<File> files, String description) {
-        this.id = id;
+    public Project(String name, List<String> files, String description) {
         this.name = name;
-        this.files = files;
+        this.filePaths = files;
         this.description = description;
     }
 
-    public int getId() {
+    public Project() {
+    }
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -33,12 +49,12 @@ public class Project {
         this.name = name;
     }
 
-    public List<File> getFiles() {
-        return files;
+    public List<String> getFilePaths() {
+        return filePaths;
     }
 
-    public void setFiles(List<File> files) {
-        this.files = files;
+    public void setFilePaths(List<String> filePaths) {
+        this.filePaths = filePaths;
     }
 
     public String getDescription() {

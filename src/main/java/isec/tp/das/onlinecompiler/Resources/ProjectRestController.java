@@ -1,79 +1,99 @@
 package isec.tp.das.onlinecompiler.Resources;
 
 import isec.tp.das.onlinecompiler.Models.Project;
+import isec.tp.das.onlinecompiler.Repository.ProjectRepository;
 import isec.tp.das.onlinecompiler.Services.BuildManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/projects")
 public class ProjectRestController {
-    private BuildManager bm;
 
-    // nao dá para usar @Autowired num constructor sem args
-    public ProjectRestController() {
+    private final ProjectRepository projectRepository;
+    private final BuildManager bm;
+
+    @Autowired
+    public ProjectRestController(ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
         this.bm = BuildManager.getInstance();
-        // Initialize three sample projects
-        Project project1 = new Project(1, "Project 1", new ArrayList<>(), "Description 1");
-        Project project2 = new Project(2, "Project 2", new ArrayList<>(), "Description 2");
-        Project project3 = new Project(3, "Project 3", new ArrayList<>(), "Description 3");
+    }
 
-        // Add projects to the BuildManager
-        bm.addProject(project1);
-        bm.addProject(project2);
-        bm.addProject(project3);
+    @PostMapping("/upload")
+    public ResponseEntity<String> handleFileUpload(@RequestParam("file") MultipartFile file,
+                                                   @RequestParam("name") String projectName,
+                                                   @RequestParam("description") String projectDescription) {
+//        TODO: falta a parte do save
+        // Save the file to a storage location
+        String filePath = saveFile(file);
+//        String filePath = "filePath";
+
+        // Create a new project
+        Project project = new Project();
+        project.setName(projectName);
+        project.setDescription(projectDescription);
+        project.getFilePaths().add(filePath);
+
+        // Save the project to the database
+        projectRepository.save(project);
+
+        // Use the BuildManager instance as needed
+
+        return ResponseEntity.ok("File uploaded successfully!");
     }
 
     @GetMapping
     public List<Project> getAllProjects() {
-        return bm.getAllProjects();
+        return projectRepository.findAll();
     }
 
     @GetMapping("/{projectId}")
-    public ResponseEntity<Project> getProjectById(@PathVariable int projectId) {
-        Project project = bm.getProjectById(projectId);
-        if (project != null) {
-            return ResponseEntity.ok(project);
+    public ResponseEntity<Project> getProjectById(@PathVariable Long projectId) {
+        Optional<Project> projectOptional = projectRepository.findById(projectId);
+
+        if (projectOptional.isPresent()) {
+            Project foundProject = projectOptional.get();
+            return ResponseEntity.ok(foundProject);
         } else {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @PostMapping
-    public ResponseEntity<Project> createProject(@RequestBody Project project) {
-        bm.addProject(project);
-        // You can customize the response as needed
-        return ResponseEntity.ok(project);
-    }
-
+    //TODO: fix atualizar a lista de files
     @PutMapping("/{projectId}")
-    public ResponseEntity<Project> updateProject(@PathVariable int projectId, @RequestBody Project updatedProject) {
-        Project existingProject = bm.getProjectById(projectId);
-        if (existingProject != null) {
-            // Update properties of the existing project
-            existingProject.setName(updatedProject.getName());
-            existingProject.setFiles(updatedProject.getFiles());
-            existingProject.setDescription(updatedProject.getDescription());
-
-            // You might want to perform additional validation or error handling here
-
-            return ResponseEntity.ok(existingProject);
-        } else {
+    public ResponseEntity<String> updateProject(@PathVariable Long projectId,
+                                                @RequestBody Project updatedProject) {
+        if (!projectRepository.existsById(projectId)) {
             return ResponseEntity.notFound().build();
         }
+
+        // Update the existing project
+        updatedProject.setId(projectId);
+        projectRepository.save(updatedProject);
+
+        return ResponseEntity.ok("Project updated successfully!");
     }
 
     @DeleteMapping("/{projectId}")
-    public ResponseEntity<Void> deleteProject(@PathVariable int projectId) {
-        boolean removed = bm.removeProject(projectId);
-        if (removed) {
-            return ResponseEntity.noContent().build();
-        } else {
+    public ResponseEntity<String> deleteProject(@PathVariable Long projectId) {
+        if (!projectRepository.existsById(projectId)) {
             return ResponseEntity.notFound().build();
         }
+
+        // Delete the project
+        projectRepository.deleteById(projectId);
+
+        return ResponseEntity.ok("Project deleted successfully!");
+    }
+
+    private String saveFile(MultipartFile file) {
+        // Logic to save the file to a specific location and return its path
+        // ...
+        return "path/to/saved/file";
     }
 }
-

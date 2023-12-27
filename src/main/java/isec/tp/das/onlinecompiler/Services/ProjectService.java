@@ -1,5 +1,8 @@
 package isec.tp.das.onlinecompiler.Services;
 
+import isec.tp.das.onlinecompiler.Models.Project;
+import isec.tp.das.onlinecompiler.Repository.ProjectRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -9,10 +12,16 @@ import java.util.List;
 
 @Service
 public class ProjectService {
+    private final ProjectRepository projectRepository;
     private BuildManager bm;
 
-    public ProjectService() {
+    public ProjectService(ProjectRepository projectRepository) {
         this.bm = BuildManager.getInstance();
+        this.projectRepository = projectRepository;
+    }
+
+    public Project saveProject(Project project) {
+        return projectRepository.save(project);
     }
 
     //    // Method to compile and execute files listed one per line in a text area
