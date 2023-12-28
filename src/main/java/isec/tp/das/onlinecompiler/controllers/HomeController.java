@@ -1,4 +1,4 @@
-package isec.tp.das.onlinecompiler.Controllers;
+package isec.tp.das.onlinecompiler.controllers;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
