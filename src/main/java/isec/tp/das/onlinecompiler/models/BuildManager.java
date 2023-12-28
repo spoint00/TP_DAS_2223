@@ -1,13 +1,12 @@
-package isec.tp.das.onlinecompiler.Services;
-
-import isec.tp.das.onlinecompiler.Models.Project;
+package isec.tp.das.onlinecompiler.models;
 
 import java.util.LinkedList;
 import java.util.List;
 
+// not sure se isto fica neste package
 public class BuildManager {
     private static BuildManager instance;
-    private List<Project> projectList = new LinkedList<>();
+    private List<ProjectEntity> projectList = new LinkedList<>();
 
     private BuildManager() {
     }
@@ -19,23 +18,23 @@ public class BuildManager {
         return instance;
     }
 
-    public synchronized void addProject(Project p) {
+    public synchronized void addProject(ProjectEntity p) {
         projectList.add(p);
     }
 
-    public synchronized Project processNextProject() {
+    public synchronized ProjectEntity processNextProject() {
         if (!projectList.isEmpty()) {
             return projectList.removeFirst();
         }
         return null;
     }
 
-    public synchronized List<Project> getAllProjects() {
+    public synchronized List<ProjectEntity> getAllProjects() {
         return new LinkedList<>(projectList);
     }
 
-    public synchronized Project getProjectById(int projectId) {
-        for (Project project : projectList) {
+    public synchronized ProjectEntity getProjectById(int projectId) {
+        for (ProjectEntity project : projectList) {
             if (project.getId() == projectId) {
                 return project;
             }
@@ -44,8 +43,8 @@ public class BuildManager {
     }
 
     public synchronized boolean removeProject(int projectId) {
-        Project projectToRemove = null;
-        for (Project project : projectList) {
+        ProjectEntity projectToRemove = null;
+        for (ProjectEntity project : projectList) {
             if (project.getId() == projectId) {
                 projectToRemove = project;
                 break;
