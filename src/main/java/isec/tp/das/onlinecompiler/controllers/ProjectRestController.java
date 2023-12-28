@@ -1,6 +1,5 @@
 package isec.tp.das.onlinecompiler.controllers;
 
-import isec.tp.das.onlinecompiler.models.BuildManager;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.services.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,19 +16,16 @@ import java.util.List;
 public class ProjectRestController {
 
     private final ProjectService projectService;
-    private final BuildManager bm;
 
     @Autowired
     public ProjectRestController(ProjectService projectService) {
         this.projectService = projectService;
-        this.bm = BuildManager.getInstance();
     }
 
     @GetMapping
     public List<ProjectEntity> getAllProjects() {
         return projectService.getAllProjects();
     }
-
 
     @GetMapping("/{projectId}")
     public ResponseEntity<ProjectEntity> getProjectById(@PathVariable Long projectId) {
@@ -58,7 +54,7 @@ public class ProjectRestController {
         }
     }
 
-
+    // TODO: corrigir metodo de update (problema na parte dos ficheiros)
     @PutMapping("/{projectId}")
     public ResponseEntity<ProjectEntity> updateProject(@PathVariable Long projectId, @RequestBody ProjectEntity updatedProject) {
         ProjectEntity project = projectService.updateProject(projectId, updatedProject);
@@ -69,7 +65,6 @@ public class ProjectRestController {
             return ResponseEntity.notFound().build();
         }
     }
-
 
     @DeleteMapping("/{projectId}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long projectId) {

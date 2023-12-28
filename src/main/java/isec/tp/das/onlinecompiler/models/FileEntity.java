@@ -7,7 +7,7 @@ public class FileEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long fileId;
+    private Long Id;
     @Column(nullable = false)
     private String name;
 
@@ -24,12 +24,12 @@ public class FileEntity {
         this.content = content;
     }
 
-    public Long getFileId() {
-        return fileId;
+    public Long getId() {
+        return Id;
     }
 
-    public void setFileId(Long fileId) {
-        this.fileId = fileId;
+    public void setId(Long fileId) {
+        this.Id = fileId;
     }
 
     public String getName() {

@@ -3,6 +3,7 @@ package isec.tp.das.onlinecompiler.models;
 import java.util.LinkedList;
 import java.util.List;
 
+// not sure se isto fica neste package
 public class BuildManager {
     private static BuildManager instance;
     private List<ProjectEntity> projectList = new LinkedList<>();

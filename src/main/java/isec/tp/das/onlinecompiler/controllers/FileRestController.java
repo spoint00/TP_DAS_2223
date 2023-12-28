@@ -1,38 +1,36 @@
 package isec.tp.das.onlinecompiler.controllers;
 
 import isec.tp.das.onlinecompiler.models.FileEntity;
-import isec.tp.das.onlinecompiler.repository.FileEntityRepository;
+import isec.tp.das.onlinecompiler.services.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/files")
-public class FileEntityRestController {
+public class FileRestController {
 
-    private final FileEntityRepository fileEntityRepository;
+    private final FileService fileService;
 
     @Autowired
-    public FileEntityRestController(FileEntityRepository fileEntityRepository) {
-        this.fileEntityRepository = fileEntityRepository;
+    public FileRestController(FileService fileService) {
+        this.fileService = fileService;
     }
 
     @GetMapping
     public List<FileEntity> getAllFiles() {
-        return fileEntityRepository.findAll();
+        return fileService.getAllFiles();
     }
 
     @GetMapping("/{fileId}")
     public ResponseEntity<FileEntity> getFileById(@PathVariable Long fileId) {
-        Optional<FileEntity> fileEntityOptional = fileEntityRepository.findById(fileId);
+        FileEntity file = fileService.getFileById(fileId);
 
-        if (fileEntityOptional.isPresent()) {
-            FileEntity fileEntity = fileEntityOptional.get();
-            return ResponseEntity.ok(fileEntity);
+        if (file != null) {
+            return ResponseEntity.ok(file);
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -40,17 +38,17 @@ public class FileEntityRestController {
 
     @PostMapping
     public ResponseEntity<String> createFile() {
-        String errorMessage = "Creating files through POST is not allowed. Use the appropriate endpoint for file upload.";
+        String errorMessage = "Not allowed to create a single file. Try to create a project.";
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(errorMessage);
     }
 
+    // TODO: corrigir metodo de update
     @PutMapping("/{fileId}")
     public ResponseEntity<FileEntity> updateFile(@PathVariable Long fileId, @RequestBody FileEntity updatedFileEntity) {
-        Optional<FileEntity> existingFileEntity = fileEntityRepository.findById(fileId);
-        if (existingFileEntity.isPresent()) {
-            updatedFileEntity.setFileId(fileId);
-            FileEntity savedFileEntity = fileEntityRepository.save(updatedFileEntity);
-            return ResponseEntity.ok(savedFileEntity);
+        FileEntity file = fileService.updateFile(fileId, updatedFileEntity);
+
+        if (file != null) {
+            return ResponseEntity.ok(file);
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -58,8 +56,7 @@ public class FileEntityRestController {
 
     @DeleteMapping("/{fileId}")
     public ResponseEntity<Void> deleteFile(@PathVariable Long fileId) {
-        if (fileEntityRepository.existsById(fileId)) {
-            fileEntityRepository.deleteById(fileId);
+        if (fileService.deleteFile(fileId)) {
             return ResponseEntity.noContent().build();
         } else {
             return ResponseEntity.notFound().build();

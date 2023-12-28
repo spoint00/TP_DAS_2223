@@ -15,11 +15,22 @@ import java.util.Optional;
 @Service
 public class ProjectService {
     private final ProjectRepository projectRepository;
-    private BuildManager bm;
+    private final BuildManager bm;
 
     public ProjectService(ProjectRepository projectRepository) {
         this.bm = BuildManager.getInstance();
         this.projectRepository = projectRepository;
+    }
+
+    public List<ProjectEntity> getAllProjects() {
+        return projectRepository.findAll();
+    }
+
+    public ProjectEntity getProjectById(Long projectId) {
+        Optional<ProjectEntity> projectOptional = projectRepository.findById(projectId);
+
+        // return project or null
+        return projectOptional.orElse(null);
     }
 
     public ProjectEntity createProject(String name, String description, List<MultipartFile> files) throws IOException {
@@ -34,17 +45,6 @@ public class ProjectService {
         return savedProject;
     }
 
-    public List<ProjectEntity> getAllProjects() {
-        return projectRepository.findAll();
-    }
-
-    public ProjectEntity getProjectById(Long projectId) {
-        Optional<ProjectEntity> projectOptional = projectRepository.findById(projectId);
-
-        // return project or null
-        return projectOptional.orElse(null);
-    }
-
     public ProjectEntity updateProject(Long projectId, ProjectEntity updatedProject) {
         Optional<ProjectEntity> existingProject = projectRepository.findById(projectId);
 
@@ -57,6 +57,7 @@ public class ProjectService {
 
     public boolean deleteProject(Long projectId) {
         if (projectRepository.existsById(projectId)) {
+            // (talvez?) ao fazer delete do projeto pode ser necessario mexer na lista do build manager
             projectRepository.deleteById(projectId);
             return true;
         } else {
