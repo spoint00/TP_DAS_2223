@@ -45,11 +45,15 @@ public class ProjectService {
         return savedProject;
     }
 
-    public ProjectEntity updateProject(Long projectId, ProjectEntity updatedProject) {
-        Optional<ProjectEntity> existingProject = projectRepository.findById(projectId);
-
-        if (existingProject.isPresent()) {
-            return projectRepository.save(updatedProject);
+    public ProjectEntity updateProject(Long projectId,String name, String description) {
+        Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
+        if (existingProjectOptional.isPresent()) {
+            ProjectEntity existingProject = existingProjectOptional.get();
+            existingProject.setName(name);
+            if(description!=null){
+                existingProject.setDescription(description);
+            }
+            return projectRepository.save(existingProject);
         } else {
             return null;
         }

@@ -54,10 +54,13 @@ public class ProjectRestController {
         }
     }
 
-    // TODO: corrigir metodo de update (problema na parte dos ficheiros)
+    //to update files use the file endpoints
     @PutMapping("/{projectId}")
-    public ResponseEntity<ProjectEntity> updateProject(@PathVariable Long projectId, @RequestBody ProjectEntity updatedProject) {
-        ProjectEntity project = projectService.updateProject(projectId, updatedProject);
+    public ResponseEntity<ProjectEntity> updateProject(
+            @PathVariable Long projectId,
+            @RequestParam("name") String name,
+            @RequestParam(value = "description", required = false) String description) {
+        ProjectEntity project = projectService.updateProject(projectId,name, description);
 
         if (project != null) {
             return ResponseEntity.ok(project);

@@ -43,6 +43,7 @@ public class FileRestController {
         String errorMessage = "Not allowed to create a single file. Try to create a project.";
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(errorMessage);
     }
+
     @PutMapping("/{fileId}")
     public ResponseEntity<FileEntity> updateFile(
             @PathVariable Long fileId,
@@ -63,8 +64,6 @@ public class FileRestController {
         }
         return ResponseEntity.badRequest().build();
     }
-
-
 
     @DeleteMapping("/{fileId}")
     public ResponseEntity<Void> deleteFile(@PathVariable Long fileId) {
