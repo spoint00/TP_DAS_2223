@@ -4,6 +4,7 @@ import isec.tp.das.onlinecompiler.models.BuildManager;
 import isec.tp.das.onlinecompiler.models.FileEntity;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
+import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.util.Helper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,11 +16,14 @@ import java.util.Optional;
 @Service
 public class ProjectService {
     private final ProjectRepository projectRepository;
+    private final ProjectEntityFactory factory;
+
     private final BuildManager bm;
 
-    public ProjectService(ProjectRepository projectRepository) {
+    public ProjectService(ProjectRepository projectRepository, ProjectEntityFactory factory) {
         this.bm = BuildManager.getInstance();
         this.projectRepository = projectRepository;
+        this.factory = factory;
     }
 
     public List<ProjectEntity> getAllProjects() {
@@ -36,8 +40,7 @@ public class ProjectService {
     public ProjectEntity createProject(String name, String description, List<MultipartFile> files) throws IOException {
         List<FileEntity> fileEntities = Helper.createFileEntities(files);
 
-        ProjectEntity project = new ProjectEntity(name, description, fileEntities);
-
+        ProjectEntity project = factory.createProjectEntity(name,description,fileEntities);
         ProjectEntity savedProject = projectRepository.save(project);
 
         bm.addProject(savedProject);
