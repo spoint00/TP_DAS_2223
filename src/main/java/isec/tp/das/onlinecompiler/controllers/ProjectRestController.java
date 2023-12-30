@@ -98,4 +98,24 @@ public class ProjectRestController {
         }
     }
 
+    @PostMapping("/{projectId}/compile")
+    public ResponseEntity<ProjectEntity> compile(@PathVariable Long projectId) {
+        ProjectEntity project = projectService.compile(projectId);
+        if (project != null) {
+            return ResponseEntity.ok(project);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{projectId}/getResults")
+    public ResponseEntity<ProjectEntity> getResults(@PathVariable Long projectId) {
+        ProjectEntity project = projectService.getResults(projectId);
+        if (project != null) {
+            return ResponseEntity.ok(project);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
 }

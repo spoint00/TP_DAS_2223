@@ -13,6 +13,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
+import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.IN_PROGRESS;
+import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.SUCCESS;
+
 @Service
 public class ProjectService {
     private final ProjectRepository projectRepository;
@@ -135,6 +138,28 @@ public class ProjectService {
         }
     }
 
+    public ProjectEntity compile(Long projectId) {
+        Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
+        if (existingProjectOptional.isPresent()) {
+            ProjectEntity existingProject = existingProjectOptional.get();
+            existingProject.setBuildStatus(IN_PROGRESS);
+            //compilas
+            return  projectRepository.save(existingProject);
+        } else {
+            return null;
+        }
+    }
+
+    public ProjectEntity getResults(Long projectId) {
+        Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
+        if (existingProjectOptional.isPresent()) {
+            ProjectEntity existingProject = existingProjectOptional.get();
+            //vais buscar status e output
+            return  projectRepository.save(existingProject);
+        } else {
+            return null;
+        }
+    }
 }
 
 
