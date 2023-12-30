@@ -19,10 +19,14 @@ public class Helper {
             String fileName = multipartFile.getOriginalFilename();
             byte[] fileContent = multipartFile.getBytes();
 
-            FileEntity fileEntity = new FileEntity(fileName, fileContent);
-            fileEntities.add(fileEntity);
+            if (fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h")) {
+                FileEntity fileEntity = new FileEntity(fileName, fileContent);
+                fileEntities.add(fileEntity);
+            } else {
+                // You can either throw an exception or handle it based on your application's needs
+                throw new IllegalArgumentException("Invalid file type: " + fileName);
+            }
         }
-
         return fileEntities;
     }
 }
