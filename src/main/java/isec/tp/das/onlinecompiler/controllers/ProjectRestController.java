@@ -2,6 +2,7 @@ package isec.tp.das.onlinecompiler.controllers;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.services.ProjectService;
+import isec.tp.das.onlinecompiler.util.Message;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -99,10 +100,10 @@ public class ProjectRestController {
     }
 
     @PostMapping("/{projectId}/compile")
-    public ResponseEntity<ProjectEntity> compile(@PathVariable Long projectId) {
-        ProjectEntity project = projectService.compile(projectId);
-        if (project != null) {
-            return ResponseEntity.ok(project);
+    public ResponseEntity<String> compile(@PathVariable Long projectId) throws IOException {
+        Message reply = projectService.compile(projectId);
+        if (reply.getBool()) {
+            return ResponseEntity.ok(reply.getMsg());
         } else {
             return ResponseEntity.notFound().build();
         }

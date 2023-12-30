@@ -3,6 +3,7 @@ package isec.tp.das.onlinecompiler.util;
 import isec.tp.das.onlinecompiler.models.FileEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,5 +29,14 @@ public class Helper {
             }
         }
         return fileEntities;
+    }
+
+    public static String convertToFile(byte[] fileBytes, String fileName) throws IOException {
+        String path = "./temp/";
+        String pathName = path + fileName;
+        try (FileOutputStream fileOutputStream = new FileOutputStream(pathName)) {
+            fileOutputStream.write(fileBytes);
+            return pathName;
+        }
     }
 }
