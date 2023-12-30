@@ -3,6 +3,8 @@ package isec.tp.das.onlinecompiler.models;
 import java.util.LinkedList;
 import java.util.List;
 
+import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
+
 // not sure se isto fica neste package
 public class BuildManager {
     private static BuildManager instance;
@@ -19,6 +21,7 @@ public class BuildManager {
     }
 
     public synchronized void addProject(ProjectEntity p) {
+        p.setBuildStatus(IN_QUEUE);
         projectList.add(p);
     }
 
@@ -42,20 +45,12 @@ public class BuildManager {
         return null;
     }
 
-    public synchronized boolean removeProject(int projectId) {
-        ProjectEntity projectToRemove = null;
-        for (ProjectEntity project : projectList) {
-            if (project.getId() == projectId) {
-                projectToRemove = project;
-                break;
-            }
-        }
-
-        if (projectToRemove != null) {
-            projectList.remove(projectToRemove);
+    public synchronized boolean removeProject(ProjectEntity project) {
+        if (project != null) {
+            project.setBuildStatus(AWAITING_QUEUE);
+            projectList.remove(project);
             return true;
         }
-
         return false;
     }
 }

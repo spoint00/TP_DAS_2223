@@ -77,4 +77,25 @@ public class ProjectRestController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @PostMapping("/{projectId}/addToQueue")
+    public ResponseEntity<ProjectEntity> addToQueue(@PathVariable Long projectId){
+        ProjectEntity project = projectService.addToQueue(projectId);
+        if (project != null) {
+            return ResponseEntity.ok(project);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{projectId}/removeFromQueue")
+    public ResponseEntity<ProjectEntity> removeFromQueue(@PathVariable Long projectId) {
+        ProjectEntity project = projectService.removeFromQueue(projectId);
+        if (project != null) {
+            return ResponseEntity.ok(project);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
 }
