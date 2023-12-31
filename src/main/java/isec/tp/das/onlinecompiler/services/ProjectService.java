@@ -104,7 +104,7 @@ public class ProjectService {
         if (existingProjectOptional.isPresent()) {
             ProjectEntity existingProject = existingProjectOptional.get();
 
-            return compileProject(existingProject);
+            return startCompilation(existingProject);
         } else {
             return new Result(false, "Project Not Found");
         }
@@ -123,28 +123,18 @@ public class ProjectService {
 
     // TODO: fazer um metodo para no final remover os ficheiros da pasta temp
     // name of the file must have extension (.c or .cpp) otherwise gives error
-    public Result compileProject(ProjectEntity project) throws IOException, InterruptedException {
-        List<FileEntity> files = project.getCodeFiles();
-        List<String> filesPaths = new ArrayList<>();
-
-        for (FileEntity file : files) {
-            String path = Helper.convertToFile(project.getName(), file.getName(), file.getContent());
-            if (path != null && !file.getName().endsWith(".h"))
-                filesPaths.add(path);
-        }
-
+    //TODO: adicionar verificaçao: correr apenas projetos que estejam com status in_queue
+    private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
+        List<String> filesPaths = getFilesPaths(project.getName(), project.getCodeFiles());
         if (filesPaths.isEmpty())
             return new Result(false, "No source files to compile.");
 
-        String compilerArgs = String.join(" ", filesPaths);
-
-        // Compile the code
         updateProjectBuildStatus(project, IN_PROGRESS);
-        ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", project.getName(), compilerArgs);
-        compilerProcessBuilder.redirectErrorStream(true);
+        ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", project.getName());
+        compilerProcessBuilder.command().addAll(filesPaths);
         Process compilerProcess = compilerProcessBuilder.start();
-
         int exitCode = compilerProcess.waitFor();
+
         if (exitCode == 0) {
             updateProjectBuildStatus(project, SUCCESS_BUILD);
             bm.compilationCompleted(project);
@@ -152,17 +142,19 @@ public class ProjectService {
         } else {
             updateProjectBuildStatus(project, FAILURE_BUILD);
             bm.compilationCompleted(project);
-            System.err.println("Compilation failed with exit code: " + exitCode);
-
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(compilerProcess.getErrorStream()));
-            StringBuilder finalOutput = new StringBuilder();
-            String line;
-            while ((line = errorReader.readLine()) != null) {
-                finalOutput.append(line).append("\n");
-            }
-            errorReader.close();
-            return new Result(false, finalOutput.toString());
+            return new Result(false, "Compilation failed. Exit code: " + exitCode);
         }
+    }
+
+    private static List<String> getFilesPaths(String projectName, List<FileEntity> files) {
+        List<String> filesPaths = new ArrayList<>();
+
+        for (FileEntity file : files) {
+            String path = Helper.convertToFile(projectName, file.getName(), file.getContent());
+            if (path != null && !file.getName().endsWith(".h"))
+                filesPaths.add(path);
+        }
+        return filesPaths;
     }
 
 
