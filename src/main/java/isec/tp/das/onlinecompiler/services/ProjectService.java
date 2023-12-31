@@ -5,8 +5,9 @@ import isec.tp.das.onlinecompiler.models.FileEntity;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
 import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
+import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
-import isec.tp.das.onlinecompiler.util.Message;
+import isec.tp.das.onlinecompiler.util.Result;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,18 +47,18 @@ public class ProjectService {
     public ProjectEntity createProject(String name, String description, List<MultipartFile> files) throws IOException {
         List<FileEntity> fileEntities = Helper.createFileEntities(files);
 
-        ProjectEntity project = factory.createProjectEntity(name,description,fileEntities);
-        ProjectEntity savedProject = projectRepository.save(project);
+        ProjectEntity project = factory.createProjectEntity(name, description, fileEntities);
 
-        return savedProject;
+        return projectRepository.save(project);
     }
 
-    public ProjectEntity updateProject(Long projectId,String name, String description) {
+    public ProjectEntity updateProject(Long projectId, String name, String description) {
         Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
+
         if (existingProjectOptional.isPresent()) {
             ProjectEntity existingProject = existingProjectOptional.get();
             existingProject.setName(name);
-            if(description!=null){
+            if (description != null) {
                 existingProject.setDescription(description);
             }
             return projectRepository.save(existingProject);
@@ -76,7 +77,6 @@ public class ProjectService {
         }
     }
 
-
     public ProjectEntity addToQueue(Long projectId) {
         Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
         if (existingProjectOptional.isPresent()) {
@@ -93,20 +93,20 @@ public class ProjectService {
         if (existingProjectOptional.isPresent()) {
             ProjectEntity existingProject = existingProjectOptional.get();
             bm.removeProject(existingProject);
-            return  projectRepository.save(existingProject);
+            return projectRepository.save(existingProject);
         } else {
             return null;
         }
     }
 
-    public Message compile(Long projectId) throws IOException {
+    public Result compile(Long projectId) throws IOException {
         Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
         if (existingProjectOptional.isPresent()) {
             ProjectEntity existingProject = existingProjectOptional.get();
 
             return compileProject(existingProject);
         } else {
-            return new Message("Project Not Found", false);
+            return new Result(false, "Project Not Found");
         }
     }
 
@@ -115,70 +115,79 @@ public class ProjectService {
         if (existingProjectOptional.isPresent()) {
             ProjectEntity existingProject = existingProjectOptional.get();
             //vais buscar status e output
-            return  projectRepository.save(existingProject);
+            return projectRepository.save(existingProject);
         } else {
             return null;
         }
     }
 
-    //    // Method to compile and execute files listed one per line in a text area
-    // endpoint para queue order
-
-    public Message compileProject(ProjectEntity project) throws IOException {
-
-        StringBuilder finalOutput = new StringBuilder();
+    public Result compileProject(ProjectEntity project) {
         List<FileEntity> files = project.getCodeFiles();
-        List<String> pathNames = new ArrayList<>();
-        for(FileEntity file : files) {
-            String pathName = Helper.convertToFile(file.getContent(), file.getName());
-            pathNames.add(pathName);
+        List<String> filesPaths = new ArrayList<>();
+
+        for (FileEntity file : files) {
+            String path = Helper.convertToFile(file.getContent(), file.getName());
+            if (path != null)
+                filesPaths.add(path);
         }
-        String args = String.join(",", pathNames);
+
+        if (filesPaths.isEmpty())
+            return new Result(false, "No source files to compile.");
+
+        String compilerArgs = String.join(" ", filesPaths);
+
         try {
             // Compile the code
-            project.setBuildStatus(IN_PROGRESS);
-            projectRepository.save(project);
-            ProcessBuilder compileBuilder = new ProcessBuilder("g++", "-o", project.getName(), args);
-            compileBuilder.redirectErrorStream(true);
-            Process compileProcess = compileBuilder.start();
-            int exitCode = compileProcess.waitFor();
+            updateProjectBuildStatus(project, IN_PROGRESS);
+
+            ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", project.getName(), compilerArgs);
+            compilerProcessBuilder.redirectErrorStream(true);
+            Process compilerProcess = compilerProcessBuilder.start();
+
+            int exitCode = compilerProcess.waitFor();
             if (exitCode == 0) {
-                project.setBuildStatus(SUCCESS_BUILD);
-                projectRepository.save(project);
-                return new Message(finalOutput.toString(), true);
+                updateProjectBuildStatus(project, SUCCESS_BUILD);
+                return new Result(true, "Compilation successful");
             } else {
-                project.setBuildStatus(FAILURE_BUILD);
-                projectRepository.save(project);
+                updateProjectBuildStatus(project, FAILURE_BUILD);
                 System.err.println("Compilation failed with exit code: " + exitCode);
-                BufferedReader errorReader = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream()));
+
+                BufferedReader errorReader = new BufferedReader(new InputStreamReader(compilerProcess.getErrorStream()));
+                StringBuilder finalOutput = new StringBuilder();
                 String line;
                 while ((line = errorReader.readLine()) != null) {
-                    System.err.println(line);
+                    finalOutput.append(line).append("\n");
                 }
                 errorReader.close();
-                return new Message(finalOutput.toString(), false);
+                return new Result(false, finalOutput.toString());
             }
-            /*
-            // Run the compiled program
-            ProcessBuilder runBuilder = new ProcessBuilder("./" + executable);
-            runBuilder.redirectErrorStream(true);
-            Process runProcess = runBuilder.start();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                finalOutput.append(line).append(System.lineSeparator());
-            }
-            int exitCode = runProcess.waitFor();
-            if (exitCode != 0) {
-                finalOutput.append("Execution of ").append(sourceFile).append(" failed.").append(System.lineSeparator());
-            }
-
-             */
         } catch (IOException | InterruptedException e) {
-            return new Message("Compilation interrupted: " + e.getMessage(), false);
+            return new Result(false, "Error during compilation: " + e.getMessage());
         }
     }
+
+
+    // update status and save in the db
+    private void updateProjectBuildStatus(ProjectEntity project, BUILDSTATUS buildstatus) {
+        project.setBuildStatus(buildstatus);
+        projectRepository.save(project);
+    }
+
+
+    // Run the compiled program
+//            ProcessBuilder runBuilder = new ProcessBuilder("./" + executable);
+//            runBuilder.redirectErrorStream(true);
+//            Process runProcess = runBuilder.start();
+//
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()));
+//            String line;
+//            while ((line = reader.readLine()) != null) {
+//                finalOutput.append(line).append(System.lineSeparator());
+//            }
+//            int exitCode = runProcess.waitFor();
+//            if (exitCode != 0) {
+//                finalOutput.append("Execution of ").append(sourceFile).append(" failed.").append(System.lineSeparator());
+//            }
 }
 
 

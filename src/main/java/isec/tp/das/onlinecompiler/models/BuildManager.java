@@ -3,7 +3,8 @@ package isec.tp.das.onlinecompiler.models;
 import java.util.LinkedList;
 import java.util.List;
 
-import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
+import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.AWAITING_QUEUE;
+import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.IN_QUEUE;
 
 // not sure se isto fica neste package
 public class BuildManager {
@@ -20,9 +21,9 @@ public class BuildManager {
         return instance;
     }
 
-    public synchronized void addProject(ProjectEntity p) {
-        p.setBuildStatus(IN_QUEUE);
-        projectList.add(p);
+    public synchronized void addProject(ProjectEntity project) {
+        project.setBuildStatus(IN_QUEUE);
+        projectList.add(project);
     }
 
     public synchronized ProjectEntity processNextProject() {
@@ -45,13 +46,9 @@ public class BuildManager {
         return null;
     }
 
-    public synchronized boolean removeProject(ProjectEntity project) {
-        if (project != null) {
-            project.setBuildStatus(AWAITING_QUEUE);
-            projectList.remove(project);
-            return true;
-        }
-        return false;
+    public synchronized void removeProject(ProjectEntity project) {
+        project.setBuildStatus(AWAITING_QUEUE);
+        projectList.remove(project);
     }
 }
 

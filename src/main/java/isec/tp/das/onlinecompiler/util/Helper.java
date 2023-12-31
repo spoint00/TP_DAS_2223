@@ -5,6 +5,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,12 +34,23 @@ public class Helper {
         return fileEntities;
     }
 
-    public static String convertToFile(byte[] fileBytes, String fileName) throws IOException {
-        String path = "./temp/";
-        String pathName = path + fileName;
-        try (FileOutputStream fileOutputStream = new FileOutputStream(pathName)) {
-            fileOutputStream.write(fileBytes);
-            return pathName;
+    // convert array of bytes to file
+    public static String convertToFile(byte[] fileBytes, String fileName) {
+        String folderName = "./temp/";
+        String filePath = folderName + fileName;
+        Path path = Paths.get(folderName);
+
+        try {
+            // create directory if it doesn't exist
+            Files.createDirectories(path);
+
+            try (FileOutputStream fileOutputStream = new FileOutputStream(filePath)) {
+                fileOutputStream.write(fileBytes);
+                return filePath;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }
