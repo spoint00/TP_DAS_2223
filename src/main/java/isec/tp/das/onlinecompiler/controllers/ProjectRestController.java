@@ -106,11 +106,11 @@ public class ProjectRestController {
             if (compilationResult.isSuccess()) {
                 return ResponseEntity.ok(compilationResult.getMessage());
             } else {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(compilationResult.getMessage());
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + e.getMessage());
         }
     }
 

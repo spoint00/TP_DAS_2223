@@ -99,7 +99,7 @@ public class ProjectService {
         }
     }
 
-    public Result compile(Long projectId) throws IOException {
+    public Result compile(Long projectId) throws IOException, InterruptedException {
         Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
         if (existingProjectOptional.isPresent()) {
             ProjectEntity existingProject = existingProjectOptional.get();
@@ -121,7 +121,7 @@ public class ProjectService {
         }
     }
 
-    public Result compileProject(ProjectEntity project) {
+    public Result compileProject(ProjectEntity project) throws IOException, InterruptedException {
         List<FileEntity> files = project.getCodeFiles();
         List<String> filesPaths = new ArrayList<>();
 
@@ -136,33 +136,29 @@ public class ProjectService {
 
         String compilerArgs = String.join(" ", filesPaths);
 
-        try {
-            // Compile the code
-            updateProjectBuildStatus(project, IN_PROGRESS);
 
-            ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", project.getName(), compilerArgs);
-            compilerProcessBuilder.redirectErrorStream(true);
-            Process compilerProcess = compilerProcessBuilder.start();
+        // Compile the code
+        updateProjectBuildStatus(project, IN_PROGRESS);
+        ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", project.getName(), compilerArgs);
+        compilerProcessBuilder.redirectErrorStream(true);
+        Process compilerProcess = compilerProcessBuilder.start();
 
-            int exitCode = compilerProcess.waitFor();
-            if (exitCode == 0) {
-                updateProjectBuildStatus(project, SUCCESS_BUILD);
-                return new Result(true, "Compilation successful");
-            } else {
-                updateProjectBuildStatus(project, FAILURE_BUILD);
-                System.err.println("Compilation failed with exit code: " + exitCode);
+        int exitCode = compilerProcess.waitFor();
+        if (exitCode == 0) {
+            updateProjectBuildStatus(project, SUCCESS_BUILD);
+            return new Result(true, "Compilation successful");
+        } else {
+            updateProjectBuildStatus(project, FAILURE_BUILD);
+            System.err.println("Compilation failed with exit code: " + exitCode);
 
-                BufferedReader errorReader = new BufferedReader(new InputStreamReader(compilerProcess.getErrorStream()));
-                StringBuilder finalOutput = new StringBuilder();
-                String line;
-                while ((line = errorReader.readLine()) != null) {
-                    finalOutput.append(line).append("\n");
-                }
-                errorReader.close();
-                return new Result(false, finalOutput.toString());
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(compilerProcess.getErrorStream()));
+            StringBuilder finalOutput = new StringBuilder();
+            String line;
+            while ((line = errorReader.readLine()) != null) {
+                finalOutput.append(line).append("\n");
             }
-        } catch (IOException | InterruptedException e) {
-            return new Result(false, "Error during compilation: " + e.getMessage());
+            errorReader.close();
+            return new Result(false, finalOutput.toString());
         }
     }
 
