@@ -92,14 +92,14 @@ public class ProjectService {
         Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
         if (existingProjectOptional.isPresent()) {
             ProjectEntity existingProject = existingProjectOptional.get();
-            bm.removeProject(existingProject);
+            bm.abortProject(existingProject);
             return projectRepository.save(existingProject);
         } else {
             return null;
         }
     }
 
-    public Result compile(Long projectId) throws IOException, InterruptedException {
+    public Result compileProject(Long projectId) throws IOException, InterruptedException {
         Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
         if (existingProjectOptional.isPresent()) {
             ProjectEntity existingProject = existingProjectOptional.get();
@@ -121,13 +121,15 @@ public class ProjectService {
         }
     }
 
+    // TODO: fazer um metodo para no final remover os ficheiros da pasta temp
+    // name of the file must have extension (.c or .cpp) otherwise gives error
     public Result compileProject(ProjectEntity project) throws IOException, InterruptedException {
         List<FileEntity> files = project.getCodeFiles();
         List<String> filesPaths = new ArrayList<>();
 
         for (FileEntity file : files) {
-            String path = Helper.convertToFile(file.getContent(), file.getName());
-            if (path != null)
+            String path = Helper.convertToFile(project.getName(), file.getName(), file.getContent());
+            if (path != null && !file.getName().endsWith(".h"))
                 filesPaths.add(path);
         }
 
@@ -135,7 +137,6 @@ public class ProjectService {
             return new Result(false, "No source files to compile.");
 
         String compilerArgs = String.join(" ", filesPaths);
-
 
         // Compile the code
         updateProjectBuildStatus(project, IN_PROGRESS);
@@ -146,9 +147,11 @@ public class ProjectService {
         int exitCode = compilerProcess.waitFor();
         if (exitCode == 0) {
             updateProjectBuildStatus(project, SUCCESS_BUILD);
+            bm.compilationCompleted(project);
             return new Result(true, "Compilation successful");
         } else {
             updateProjectBuildStatus(project, FAILURE_BUILD);
+            bm.compilationCompleted(project);
             System.err.println("Compilation failed with exit code: " + exitCode);
 
             BufferedReader errorReader = new BufferedReader(new InputStreamReader(compilerProcess.getErrorStream()));

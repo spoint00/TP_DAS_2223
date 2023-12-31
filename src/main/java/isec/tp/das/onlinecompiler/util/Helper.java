@@ -35,17 +35,16 @@ public class Helper {
     }
 
     // convert array of bytes to file
-    public static String convertToFile(byte[] fileBytes, String fileName) {
-        String folderName = "./temp/";
-        String filePath = folderName + fileName;
-        Path path = Paths.get(folderName);
+    public static String convertToFile(String projectName, String fileName, byte[] fileContent) {
+        String folderPath = "./temp/" + projectName;
+        String filePath = folderPath + "/" + fileName;
 
         try {
-            // create directory if it doesn't exist
-            Files.createDirectories(path);
-
+            // create directories if they don't exist
+            Files.createDirectories(Path.of(folderPath));
+            // write file
             try (FileOutputStream fileOutputStream = new FileOutputStream(filePath)) {
-                fileOutputStream.write(fileBytes);
+                fileOutputStream.write(fileContent);
                 return filePath;
             }
         } catch (IOException e) {

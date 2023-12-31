@@ -102,7 +102,7 @@ public class ProjectRestController {
     @PostMapping("/{projectId}/compile")
     public ResponseEntity<String> compile(@PathVariable Long projectId) {
         try {
-            Result compilationResult = projectService.compile(projectId);
+            Result compilationResult = projectService.compileProject(projectId);
             if (compilationResult.isSuccess()) {
                 return ResponseEntity.ok(compilationResult.getMessage());
             } else {
