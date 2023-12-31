@@ -36,16 +36,16 @@ public class Helper {
 
     // convert array of bytes to file
     public static String convertToFile(String projectName, String fileName, byte[] fileContent) {
-        String folderPath = "./temp/" + projectName;
-        String filePath = folderPath + "/" + fileName;
+        Path folderPath = Paths.get("./temp", projectName);
+        Path filePath = folderPath.resolve(fileName);
 
         try {
             // create directories if they don't exist
-            Files.createDirectories(Path.of(folderPath));
+            Files.createDirectories(folderPath);
             // write file
-            try (FileOutputStream fileOutputStream = new FileOutputStream(filePath)) {
+            try (FileOutputStream fileOutputStream = new FileOutputStream(filePath.toFile())) {
                 fileOutputStream.write(fileContent);
-                return filePath;
+                return filePath.toString();
             }
         } catch (IOException e) {
             e.printStackTrace();

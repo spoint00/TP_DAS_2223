@@ -11,9 +11,9 @@ import isec.tp.das.onlinecompiler.util.Result;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +31,17 @@ public class ProjectService {
         this.bm = BuildManager.getInstance();
         this.projectRepository = projectRepository;
         this.factory = factory;
+    }
+
+    private static List<String> getFilesPaths(String projectName, List<FileEntity> files) {
+        List<String> filesPaths = new ArrayList<>();
+
+        for (FileEntity file : files) {
+            String path = Helper.convertToFile(projectName, file.getName(), file.getContent());
+            if (path != null && !file.getName().endsWith(".h"))
+                filesPaths.add(path);
+        }
+        return filesPaths;
     }
 
     public List<ProjectEntity> getAllProjects() {
@@ -121,23 +132,26 @@ public class ProjectService {
         }
     }
 
-    // TODO: fazer um metodo para no final da compilaçao remover os ficheiros da pasta temp
     // name of the file must have extension (.c or .cpp) otherwise gives error
     private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
-        if (project.getBuildStatus() != IN_QUEUE){
+        if (project.getBuildStatus() != IN_QUEUE) {
             return new Result(false, "Project not in queue.");
         }
 
-        List<String> filesPaths = getFilesPaths(project.getName(), project.getCodeFiles());
+        // replace whitespaces with underscore
+        String projectName = project.getName().replace(" ", "_");
+        Path exePath = Paths.get("./temp", projectName, "/", projectName);
+        List<String> filesPaths = getFilesPaths(projectName, project.getCodeFiles());
+
         if (filesPaths.isEmpty())
             return new Result(false, "No source files to compile.");
 
         updateProjectBuildStatus(project, IN_PROGRESS);
-        ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", project.getName());
+        ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
         compilerProcessBuilder.command().addAll(filesPaths);
         Process compilerProcess = compilerProcessBuilder.start();
-        int exitCode = compilerProcess.waitFor();
 
+        int exitCode = compilerProcess.waitFor();
         if (exitCode == 0) {
             updateProjectBuildStatus(project, SUCCESS_BUILD);
             bm.compilationCompleted(project);
@@ -148,18 +162,6 @@ public class ProjectService {
             return new Result(false, "Compilation failed. Exit code: " + exitCode);
         }
     }
-
-    private static List<String> getFilesPaths(String projectName, List<FileEntity> files) {
-        List<String> filesPaths = new ArrayList<>();
-
-        for (FileEntity file : files) {
-            String path = Helper.convertToFile(projectName, file.getName(), file.getContent());
-            if (path != null && !file.getName().endsWith(".h"))
-                filesPaths.add(path);
-        }
-        return filesPaths;
-    }
-
 
     // update status and save in the db
     private void updateProjectBuildStatus(ProjectEntity project, BUILDSTATUS buildstatus) {
