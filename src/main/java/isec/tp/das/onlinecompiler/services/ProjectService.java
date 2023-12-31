@@ -121,10 +121,13 @@ public class ProjectService {
         }
     }
 
-    // TODO: fazer um metodo para no final remover os ficheiros da pasta temp
+    // TODO: fazer um metodo para no final da compilaçao remover os ficheiros da pasta temp
     // name of the file must have extension (.c or .cpp) otherwise gives error
-    //TODO: adicionar verificaçao: correr apenas projetos que estejam com status in_queue
     private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
+        if (project.getBuildStatus() != IN_QUEUE){
+            return new Result(false, "Project not in queue.");
+        }
+
         List<String> filesPaths = getFilesPaths(project.getName(), project.getCodeFiles());
         if (filesPaths.isEmpty())
             return new Result(false, "No source files to compile.");
