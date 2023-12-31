@@ -9,6 +9,6 @@ public class ConcreteProjectEntityFactory implements ProjectEntityFactory {
 
     @Override
     public ProjectEntity createProjectEntity(String name, String description, List<FileEntity> fileEntities) {
-        return new ProjectEntity(name,description,fileEntities);
+        return new ProjectEntity(name, description, fileEntities);
     }
 }

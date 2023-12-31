@@ -2,6 +2,7 @@ package isec.tp.das.onlinecompiler.controllers;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.services.ProjectService;
+import isec.tp.das.onlinecompiler.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -91,6 +92,31 @@ public class ProjectRestController {
     @PostMapping("/{projectId}/removeFromQueue")
     public ResponseEntity<ProjectEntity> removeFromQueue(@PathVariable Long projectId) {
         ProjectEntity project = projectService.removeFromQueue(projectId);
+        if (project != null) {
+            return ResponseEntity.ok(project);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{projectId}/compile")
+    public ResponseEntity<String> compile(@PathVariable Long projectId) {
+        try {
+            Result compilationResult = projectService.compileProject(projectId);
+            if (compilationResult.isSuccess()) {
+                return ResponseEntity.ok(compilationResult.getMessage());
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(compilationResult.getMessage());
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{projectId}/getResults")
+    public ResponseEntity<ProjectEntity> getResults(@PathVariable Long projectId) {
+        ProjectEntity project = projectService.getResults(projectId);
         if (project != null) {
             return ResponseEntity.ok(project);
         } else {
