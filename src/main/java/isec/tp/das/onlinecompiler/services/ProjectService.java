@@ -1,6 +1,5 @@
 package isec.tp.das.onlinecompiler.services;
 
-import isec.tp.das.onlinecompiler.models.BuildManager;
 import isec.tp.das.onlinecompiler.models.FileEntity;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
@@ -139,11 +138,21 @@ public class ProjectService {
         if (exitCode == 0) {
             updateProjectBuildStatus(project, SUCCESS_BUILD);
             bm.compilationCompleted(project);
-            return new Result(true, "Compilation successful. Output:\n" + output);
+
+            String successMessage = "Compilation successful.";
+            if (!output.isEmpty()) {
+                successMessage += "\nOutput:\n" + output;
+            }
+            return new Result(true, successMessage);
         } else {
             updateProjectBuildStatus(project, FAILURE_BUILD);
             bm.compilationCompleted(project);
-            return new Result(false, "Compilation failed. Exit code: " + exitCode + "\nOutput:\n" + output);
+
+            String failureMessage = "Compilation failed. Exit code: " + exitCode;
+            if (!output.isEmpty()) {
+                failureMessage += "\nOutput:\n" + output;
+            }
+            return new Result(false, failureMessage);
         }
     }
 
@@ -165,14 +174,25 @@ public class ProjectService {
 
         int exitCode = runnerProcess.waitFor();
 
+        // read the output from the process
         String output = readProcessOutput(runnerProcess);
 
         if (exitCode == 0) {
             updateProjectBuildStatus(project, SUCCESS_RUN);
-            return new Result(true, "Run successful. Output:\n" + output);
+
+            String successMessage = "Run successful.";
+            if (!output.isEmpty()) {
+                successMessage += "\nOutput:\n" + output;
+            }
+            return new Result(true, successMessage);
         } else {
             updateProjectBuildStatus(project, FAILURE_RUN);
-            return new Result(false, "Run failed. Exit code: " + exitCode + "\nOutput:\n" + output);
+
+            String failureMessage = "Run failed. Exit code: " + exitCode;
+            if (!output.isEmpty()) {
+                failureMessage += "\nOutput:\n" + output;
+            }
+            return new Result(false, failureMessage);
         }
     }
 
