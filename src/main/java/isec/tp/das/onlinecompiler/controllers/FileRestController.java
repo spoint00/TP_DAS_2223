@@ -47,12 +47,11 @@ public class FileRestController {
     @PutMapping("/{fileId}")
     public ResponseEntity<FileEntity> updateFile(
             @PathVariable Long fileId,
-            @RequestParam("name") String name,
-            @RequestParam("file") MultipartFile fileContent) {
+            @RequestParam("file") MultipartFile file) {
 
-        if (!fileContent.isEmpty()) {
+        if (!file.isEmpty()) {
             try {
-                FileEntity updatedFile = fileService.updateFile(fileId,name, fileContent);
+                FileEntity updatedFile = fileService.updateFile(fileId, file);
                 if (updatedFile != null) {
                     return ResponseEntity.ok(updatedFile);
                 } else {

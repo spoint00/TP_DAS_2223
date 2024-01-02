@@ -1,4 +1,6 @@
-package isec.tp.das.onlinecompiler.models;
+package isec.tp.das.onlinecompiler.services;
+
+import isec.tp.das.onlinecompiler.models.ProjectEntity;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -6,7 +8,6 @@ import java.util.List;
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.AWAITING_QUEUE;
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.IN_QUEUE;
 
-// not sure se isto fica neste package
 public class BuildManager {
     private static BuildManager instance;
     private final List<ProjectEntity> projectList = new LinkedList<>();
