@@ -39,7 +39,7 @@ public class ProjectRestController {
         }
     }
 
-    // TODO: verificaçao: (no project e no file) para permitir apenas guardar ficheiros com extensao .c, .cpp, .h
+    // TODO: verificaçao: (no project e no file) permitir apenas guardar ficheiros com extensao .c, .cpp, .h
     // TODO: verificaçao: os projetos devem conter pelo menos 1 ficheiro .c ou .cpp
     @PostMapping
     public ResponseEntity<ProjectEntity> createProject(
@@ -101,6 +101,7 @@ public class ProjectRestController {
         }
     }
 
+    //TODO: mudar o compile para em vez de pedir o projectID deve compilar o proximo project da queue
     @PostMapping("/{projectId}/compile")
     public ResponseEntity<String> compile(@PathVariable Long projectId) {
         try {
@@ -115,15 +116,4 @@ public class ProjectRestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + e.getMessage());
         }
     }
-
-    @GetMapping("/{projectId}/getResults")
-    public ResponseEntity<ProjectEntity> getResults(@PathVariable Long projectId) {
-        ProjectEntity project = projectService.getResults(projectId);
-        if (project != null) {
-            return ResponseEntity.ok(project);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
 }

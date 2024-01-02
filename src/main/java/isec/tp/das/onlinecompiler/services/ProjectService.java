@@ -121,17 +121,6 @@ public class ProjectService {
         }
     }
 
-    public ProjectEntity getResults(Long projectId) {
-        Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
-        if (existingProjectOptional.isPresent()) {
-            ProjectEntity existingProject = existingProjectOptional.get();
-            //vais buscar status e output
-            return projectRepository.save(existingProject);
-        } else {
-            return null;
-        }
-    }
-
     private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         if (project.getBuildStatus() != IN_QUEUE) {
             return new Result(false, "Project not in queue.");
@@ -168,6 +157,16 @@ public class ProjectService {
         projectRepository.save(project);
     }
 
+    //    public ProjectEntity getResults(Long projectId) {
+//        Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
+//        if (existingProjectOptional.isPresent()) {
+//            ProjectEntity existingProject = existingProjectOptional.get();
+//            //vais buscar status e output
+//            return projectRepository.save(existingProject);
+//        } else {
+//            return null;
+//        }
+//    }
 
     // Run the compiled program
 //            ProcessBuilder runBuilder = new ProcessBuilder("./" + executable);
