@@ -99,6 +99,7 @@ public class ProjectService {
     }
 
     //TODO: usar uma factory para o Result
+    //NOTE: Result provavelmente vai sofrer alteracoes
     public Result compileProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = getProjectById(projectId);
         if (project != null) {
@@ -108,7 +109,8 @@ public class ProjectService {
         }
     }
 
-    // colocar compilacao a correr numa thread?
+    //TODO: remover os ficheiros de codigo temporarios do respetivo projecto depois da compilacao
+    //colocar compilacao a correr numa thread?
     private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         if (project.getBuildStatus() != IN_QUEUE) {
             return new Result(false, "Project not in queue.");
