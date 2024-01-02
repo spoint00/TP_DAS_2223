@@ -132,7 +132,6 @@ public class ProjectService {
         }
     }
 
-    // name of the file must have extension (.c or .cpp) otherwise gives error
     private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         if (project.getBuildStatus() != IN_QUEUE) {
             return new Result(false, "Project not in queue.");
