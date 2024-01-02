@@ -115,28 +115,35 @@ public class ProjectService {
             return new Result(false, "Project not in queue.");
         }
 
-        // replace whitespaces with underscore
         String projectName = project.getName().replace(" ", "_");
         Path exePath = Paths.get("./temp").resolve(projectName).resolve(projectName);
         List<String> filesPaths = Helper.getFilesPathsAsStrings(projectName, project.getCodeFiles());
 
-        if (filesPaths.isEmpty())
+        if (filesPaths.isEmpty()) {
             return new Result(false, "No source files to compile.");
+        }
 
         updateProjectBuildStatus(project, IN_PROGRESS);
         ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
         compilerProcessBuilder.command().addAll(filesPaths);
+
+        // redirect the error stream to be able to read the output and/or the error
+        compilerProcessBuilder.redirectErrorStream(true);
         Process compilerProcess = compilerProcessBuilder.start();
 
         int exitCode = compilerProcess.waitFor();
+
+        // read the output from the process
+        String output = readProcessOutput(compilerProcess);
+
         if (exitCode == 0) {
             updateProjectBuildStatus(project, SUCCESS_BUILD);
             bm.compilationCompleted(project);
-            return new Result(true, "Compilation successful");
+            return new Result(true, "Compilation successful. Output:\n" + output);
         } else {
             updateProjectBuildStatus(project, FAILURE_BUILD);
             bm.compilationCompleted(project);
-            return new Result(false, "Compilation failed. Exit code: " + exitCode);
+            return new Result(false, "Compilation failed. Exit code: " + exitCode + "\nOutput:\n" + output);
         }
     }
 
@@ -152,13 +159,12 @@ public class ProjectService {
 
         ProcessBuilder runnerProcessBuilder = new ProcessBuilder(exePath.toString());
 
-        // redirect the standard output and error to capture the output
+        // redirect the error stream to be able to read the output and/or the error
         runnerProcessBuilder.redirectErrorStream(true);
         Process runnerProcess = runnerProcessBuilder.start();
 
         int exitCode = runnerProcess.waitFor();
 
-        // read the output from the process
         String output = readProcessOutput(runnerProcess);
 
         if (exitCode == 0) {
