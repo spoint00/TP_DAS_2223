@@ -36,7 +36,7 @@ public class Helper {
 
     // convert array of bytes to file
     public static String convertToFile(String projectName, String fileName, byte[] fileContent) {
-        Path folderPath = Paths.get("./temp", projectName);
+        Path folderPath = Paths.get("./temp").resolve(projectName);
         Path filePath = folderPath.resolve(fileName);
 
         try {
@@ -51,5 +51,17 @@ public class Helper {
             e.printStackTrace();
             return null;
         }
+    }
+
+    // return list of file paths as strings
+    public static List<String> getFilesPathsAsStrings(String projectName, List<FileEntity> files) {
+        List<String> filesPaths = new ArrayList<>();
+
+        for (FileEntity file : files) {
+            String path = Helper.convertToFile(projectName, file.getName(), file.getContent());
+            if (path != null && !file.getName().endsWith(".h"))
+                filesPaths.add(path);
+        }
+        return filesPaths;
     }
 }

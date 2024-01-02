@@ -32,22 +32,20 @@ public class FileService {
         return fileOptional.orElse(null);
     }
 
-    public FileEntity updateFile(Long fileId,String name, MultipartFile fileContent) throws IOException {
-        Optional<FileEntity> existingFileOpt = fileEntityRepository.findById(fileId);
-        if (existingFileOpt.isPresent()) {
-            FileEntity existingFile = existingFileOpt.get();
-            byte[] fileData = fileContent.getBytes();
+    public FileEntity updateFile(Long fileId, MultipartFile multipartFile) throws IOException {
+        FileEntity fileEntity = getFileById(fileId);
 
-            existingFile.setName(name); // Assuming FileEntity has a setter for fileName
-            existingFile.setContent(fileData); // Assuming FileEntity has a setter for fileContent
+        if (fileEntity != null) {
+            byte[] fileData = multipartFile.getBytes();
 
-            return fileEntityRepository.save(existingFile); // Persist the updated entity
+            fileEntity.setName(multipartFile.getOriginalFilename());
+            fileEntity.setContent(fileData);
+
+            return fileEntityRepository.save(fileEntity);
         } else {
-            return null; // Or throw an exception if you prefer
+            return null;
         }
     }
-
-
 
     public boolean deleteFile(Long fileId) {
         if (fileEntityRepository.existsById(fileId)) {

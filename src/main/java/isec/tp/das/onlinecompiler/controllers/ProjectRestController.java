@@ -116,4 +116,19 @@ public class ProjectRestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + e.getMessage());
         }
     }
+
+    @PostMapping("/{projectId}/run")
+    public ResponseEntity<String> run(@PathVariable Long projectId){
+        try {
+            Result runResult = projectService.runProject(projectId);
+            if (runResult.isSuccess()) {
+                return ResponseEntity.ok(runResult.getMessage());
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(runResult.getMessage());
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error running the project: " + e.getMessage());
+        }
+    }
 }
