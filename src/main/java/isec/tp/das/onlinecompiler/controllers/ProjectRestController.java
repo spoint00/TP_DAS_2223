@@ -2,7 +2,7 @@ package isec.tp.das.onlinecompiler.controllers;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.services.ProjectService;
-import isec.tp.das.onlinecompiler.util.Result;
+import isec.tp.das.onlinecompiler.models.ResultEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -105,11 +105,11 @@ public class ProjectRestController {
     @PostMapping("/{projectId}/compile")
     public ResponseEntity<String> compile(@PathVariable Long projectId) {
         try {
-            Result compilationResult = projectService.compileProject(projectId);
-            if (compilationResult.isSuccess()) {
-                return ResponseEntity.ok(compilationResult.getMessage());
+            ResultEntity compilationResultEntity = projectService.compileProject(projectId);
+            if (compilationResultEntity.isSuccess()) {
+                return ResponseEntity.ok(compilationResultEntity.getMessage());
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(compilationResult.getMessage());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(compilationResultEntity.getMessage());
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -120,11 +120,11 @@ public class ProjectRestController {
     @PostMapping("/{projectId}/run")
     public ResponseEntity<String> run(@PathVariable Long projectId){
         try {
-            Result runResult = projectService.runProject(projectId);
-            if (runResult.isSuccess()) {
-                return ResponseEntity.ok(runResult.getMessage());
+            ResultEntity runResultEntity = projectService.runProject(projectId);
+            if (runResultEntity.isSuccess()) {
+                return ResponseEntity.ok(runResultEntity.getMessage());
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(runResult.getMessage());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(runResultEntity.getMessage());
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();

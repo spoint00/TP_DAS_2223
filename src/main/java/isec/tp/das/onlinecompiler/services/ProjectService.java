@@ -3,10 +3,12 @@ package isec.tp.das.onlinecompiler.services;
 import isec.tp.das.onlinecompiler.models.FileEntity;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
+import isec.tp.das.onlinecompiler.repository.ResultEntityRepository;
 import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
+import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
-import isec.tp.das.onlinecompiler.util.Result;
+import isec.tp.das.onlinecompiler.models.ResultEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,7 +19,6 @@ import java.nio.file.Files;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,14 +27,21 @@ import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
 @Service
 public class ProjectService {
     private final ProjectRepository projectRepository;
-    private final ProjectEntityFactory factory;
+    private final ResultEntityRepository resultRepository;
+
+    private final ProjectEntityFactory projectFactory;
+
+    private final ResultEntityFactory resultFactory;
 
     private final BuildManager bm;
 
-    public ProjectService(ProjectRepository projectRepository, ProjectEntityFactory factory) {
-        this.bm = BuildManager.getInstance();
+    public ProjectService(ProjectRepository projectRepository, ResultEntityRepository resultRepository, ProjectEntityFactory projectFactory, ResultEntityFactory resultFactory) {
+        this.resultRepository = resultRepository;
         this.projectRepository = projectRepository;
-        this.factory = factory;
+        this.bm = BuildManager.getInstance();
+        this.projectFactory = projectFactory;
+        this.resultFactory = resultFactory;
+
     }
 
     public List<ProjectEntity> getAllProjects() {
@@ -49,8 +57,8 @@ public class ProjectService {
 
     public ProjectEntity createProject(String name, String description, List<MultipartFile> files) throws IOException {
         List<FileEntity> fileEntities = Helper.createFileEntities(files);
-
-        ProjectEntity project = factory.createProjectEntity(name, description, fileEntities);
+        ResultEntity resultEntity = resultFactory.createResultEntity();
+        ProjectEntity project = projectFactory.createProjectEntity(name, description, fileEntities, resultEntity);
 
         return projectRepository.save(project);
     }
@@ -103,19 +111,21 @@ public class ProjectService {
 
     //TODO: usar uma factory para o Result
     //NOTE: Result provavelmente vai sofrer alteracoes
-    public Result compileProject(Long projectId) throws IOException, InterruptedException {
+    public ResultEntity compileProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = getProjectById(projectId);
         if (project != null) {
             return startCompilation(project);
         } else {
-            return new Result(false, "Project Not Found");
+            ResultEntity result = resultFactory.createResultEntity(false, "Project Not Found", null);
+            return resultRepository.save(result);
         }
     }
 
     //colocar compilacao a correr numa thread?
-    private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
+    private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         if (project.getBuildStatus() != IN_QUEUE) {
-            return new Result(false, "Project not in queue.");
+            ResultEntity result = resultFactory.createResultEntity(false, "Project not in queue.", null);
+            return resultRepository.save(result);
         }
 
         String projectName = project.getName().replace(" ", "_");
@@ -123,7 +133,8 @@ public class ProjectService {
         List<String> filesPaths = Helper.getFilesPathsAsStrings(projectName, project.getCodeFiles());
 
         if (filesPaths.isEmpty()) {
-            return new Result(false, "No source files to compile.");
+            ResultEntity result = resultFactory.createResultEntity(false, "No source files to compile.", null);
+            return resultRepository.save(result);
         }
 
         updateProjectBuildStatus(project, IN_PROGRESS);
@@ -149,7 +160,8 @@ public class ProjectService {
             }
             // Cleanup temporary files
             cleanupTempFiles(Paths.get("./temp").resolve(projectName));
-            return new Result(true, successMessage);
+            ResultEntity result = resultFactory.createResultEntity(true, successMessage, null);
+            return resultRepository.save(result);
         } else {
             updateProjectBuildStatus(project, FAILURE_BUILD);
             bm.compilationCompleted(project);
@@ -160,7 +172,8 @@ public class ProjectService {
             }
             // Cleanup temporary files
             cleanupTempFiles(Paths.get("./temp").resolve(projectName));
-            return new Result(false, failureMessage);
+            ResultEntity result = resultFactory.createResultEntity(false, failureMessage, null);
+            return resultRepository.save(result);
         }
     }
 
@@ -176,14 +189,16 @@ public class ProjectService {
         }
     }
 
-    public Result runProject(Long projectId) throws IOException, InterruptedException {
+    public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = getProjectById(projectId);
         if(project == null){
-            return new Result(false, "Project is null");
+            ResultEntity result = resultFactory.createResultEntity(false, "Project is null", null);
+            return resultRepository.save(result);
 
         }
         if (project.getBuildStatus() != SUCCESS_BUILD ) {
-            return new Result(false, "Project not in queue.");
+            ResultEntity result = resultFactory.createResultEntity(false, "Project not in queue.", null);
+            return resultRepository.save(result);
         }
 
         // replace whitespaces with underscore
@@ -208,7 +223,8 @@ public class ProjectService {
             if (!output.isEmpty()) {
                 successMessage += "\nOutput:\n" + output;
             }
-            return new Result(true, successMessage);
+            ResultEntity result = resultFactory.createResultEntity(true, successMessage, null);
+            return resultRepository.save(result);
         } else {
             updateProjectBuildStatus(project, FAILURE_RUN);
 
@@ -216,7 +232,8 @@ public class ProjectService {
             if (!output.isEmpty()) {
                 failureMessage += "\nOutput:\n" + output;
             }
-            return new Result(false, failureMessage);
+            ResultEntity result = resultFactory.createResultEntity(false, failureMessage, null);
+            return resultRepository.save(result);
         }
     }
 
