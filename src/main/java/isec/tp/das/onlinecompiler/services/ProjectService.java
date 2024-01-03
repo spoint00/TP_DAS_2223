@@ -13,8 +13,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -109,7 +112,6 @@ public class ProjectService {
         }
     }
 
-    //TODO: remover os ficheiros de codigo temporarios do respetivo projecto depois da compilacao
     //colocar compilacao a correr numa thread?
     private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         if (project.getBuildStatus() != IN_QUEUE) {
@@ -145,6 +147,8 @@ public class ProjectService {
             if (!output.isEmpty()) {
                 successMessage += "\nOutput:\n" + output;
             }
+            // Cleanup temporary files
+            cleanupTempFiles(Paths.get("./temp").resolve(projectName));
             return new Result(true, successMessage);
         } else {
             updateProjectBuildStatus(project, FAILURE_BUILD);
@@ -154,13 +158,31 @@ public class ProjectService {
             if (!output.isEmpty()) {
                 failureMessage += "\nOutput:\n" + output;
             }
+            // Cleanup temporary files
+            cleanupTempFiles(Paths.get("./temp").resolve(projectName));
             return new Result(false, failureMessage);
+        }
+    }
+
+    private void cleanupTempFiles(Path tempDirectoryPath) {
+        try {
+            Files.walk(tempDirectoryPath)
+                    .filter(path -> !path.toString().endsWith(".exe"))
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        } catch (IOException e) {
+            // Log the exception or handle it as per your requirement
+            System.err.println("Error occurred while deleting temp files: " + e.getMessage());
         }
     }
 
     public Result runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = getProjectById(projectId);
-        if (project.getBuildStatus() != SUCCESS_BUILD) {
+        if(project == null){
+            return new Result(false, "Project is null");
+
+        }
+        if (project.getBuildStatus() != SUCCESS_BUILD ) {
             return new Result(false, "Project not in queue.");
         }
 
