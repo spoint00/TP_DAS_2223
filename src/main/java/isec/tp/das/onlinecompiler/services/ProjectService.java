@@ -160,9 +160,9 @@ public class ProjectService {
 
     public Result runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = getProjectById(projectId);
-
-        if (project == null)
-            return null;
+        if (project.getBuildStatus() != SUCCESS_BUILD) {
+            return new Result(false, "Project not in queue.");
+        }
 
         // replace whitespaces with underscore
         String projectName = project.getName().replace(" ", "_");
