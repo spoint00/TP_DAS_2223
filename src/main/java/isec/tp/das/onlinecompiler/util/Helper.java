@@ -3,6 +3,7 @@ package isec.tp.das.onlinecompiler.util;
 import isec.tp.das.onlinecompiler.models.FileEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class Helper {
     private Helper() {
@@ -63,5 +65,14 @@ public class Helper {
                 filesPaths.add(path);
         }
         return filesPaths;
+    }
+
+    // clean source code files from temp folder
+    public static void cleanupTempFiles(Path tempDirectoryPath) throws IOException {
+        try (Stream<Path> paths = Files.walk(tempDirectoryPath)) {
+            paths.filter(path -> !path.toString().endsWith(".exe"))
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        }
     }
 }

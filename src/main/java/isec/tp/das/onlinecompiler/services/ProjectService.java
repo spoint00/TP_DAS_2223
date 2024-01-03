@@ -109,7 +109,6 @@ public class ProjectService {
         }
     }
 
-    //TODO: remover os ficheiros de codigo temporarios do respetivo projecto depois da compilacao
     //colocar compilacao a correr numa thread?
     private Result startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         if (project.getBuildStatus() != IN_QUEUE) {
@@ -117,7 +116,8 @@ public class ProjectService {
         }
 
         String projectName = project.getName().replace(" ", "_");
-        Path exePath = Paths.get("./temp").resolve(projectName).resolve(projectName);
+        Path tempPath = Paths.get("./temp");
+        Path exePath = tempPath.resolve(projectName).resolve(projectName);
         List<String> filesPaths = Helper.getFilesPathsAsStrings(projectName, project.getCodeFiles());
 
         if (filesPaths.isEmpty()) {
@@ -145,6 +145,7 @@ public class ProjectService {
             if (!output.isEmpty()) {
                 successMessage += "\nOutput:\n" + output;
             }
+            Helper.cleanupTempFiles(tempPath.resolve(projectName));
             return new Result(true, successMessage);
         } else {
             updateProjectBuildStatus(project, FAILURE_BUILD);
@@ -154,6 +155,7 @@ public class ProjectService {
             if (!output.isEmpty()) {
                 failureMessage += "\nOutput:\n" + output;
             }
+            Helper.cleanupTempFiles(tempPath.resolve(projectName));
             return new Result(false, failureMessage);
         }
     }
@@ -161,8 +163,12 @@ public class ProjectService {
     public Result runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = getProjectById(projectId);
 
-        if (project == null)
-            return null;
+        if (project == null) {
+            return new Result(false, "Project not found.");
+        }
+        if (project.getBuildStatus() != SUCCESS_BUILD) {
+            return new Result(false, "Project didn't compile successfully.");
+        }
 
         // replace whitespaces with underscore
         String projectName = project.getName().replace(" ", "_");
