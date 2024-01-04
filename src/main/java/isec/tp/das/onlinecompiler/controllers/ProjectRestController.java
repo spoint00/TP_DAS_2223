@@ -101,11 +101,10 @@ public class ProjectRestController {
         }
     }
 
-    //TODO: mudar o compile para em vez de pedir o projectID deve compilar o proximo project da queue
-    @PostMapping("/{projectId}/compile")
-    public ResponseEntity<String> compile(@PathVariable Long projectId) {
+    @PostMapping("/compile")
+    public ResponseEntity<String> compile() {
         try {
-            ResultEntity compilationResult = projectService.compileProject(projectId);
+            ResultEntity compilationResult = projectService.compileProject();
             String response = compilationResult.getMessage() + "\n" + compilationResult.getOutput();
             if (compilationResult.isSuccess()) {
                 return ResponseEntity.ok(response);

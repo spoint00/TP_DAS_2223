@@ -27,12 +27,12 @@ public class BuildManager {
         projectList.add(project);
     }
 
-//    public synchronized ProjectEntity processNextProject() {
-//        if (!projectList.isEmpty()) {
-//            return projectList.removeFirst();
-//        }
-//        return null;
-//    }
+    public synchronized ProjectEntity processNextProject() {
+        if (!projectList.isEmpty()) {
+            return projectList.removeFirst();
+        }
+        return null;
+    }
 
 //    public synchronized List<ProjectEntity> getAllProjects() {
 //        return new LinkedList<>(projectList);

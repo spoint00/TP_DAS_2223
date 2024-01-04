@@ -107,8 +107,9 @@ public class ProjectService {
         }
     }
 
-    public ResultEntity compileProject(Long projectId) throws IOException, InterruptedException {
-        ProjectEntity project = getProjectById(projectId);
+    public ResultEntity compileProject() throws IOException, InterruptedException {
+        Long nextProjectID = bm.processNextProject().getId();
+        ProjectEntity project = getProjectById(nextProjectID);
         if (project != null) {
             return startCompilation(project);
         } else {
