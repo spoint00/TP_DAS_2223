@@ -218,22 +218,29 @@ public class ProjectService {
 
         if (exitCode == 0) {
             updateProjectBuildStatus(project, SUCCESS_RUN);
-
             String successMessage = "Run successful.";
             if (!output.isEmpty()) {
                 successMessage += "\nOutput:\n" + output;
             }
-            ResultEntity result = resultFactory.createResultEntity(true, successMessage, null);
+            ResultEntity result = resultFactory.createResultEntity(true, successMessage, output);
+            Optional<ResultEntity> resultEntityOptional = resultRepository.findById(projectId);
+            if (resultEntityOptional.isEmpty()) {
+                String failureMessage = "Run failed. Exit code: " + exitCode;
+                ResultEntity returnSmthing = resultFactory.createResultEntity(false, failureMessage, null);
+                return resultRepository.save(returnSmthing);
+            }else{
+                String success = "Run successful.";
+                result.setMessage(success);
+            }
             return resultRepository.save(result);
         } else {
             updateProjectBuildStatus(project, FAILURE_RUN);
-
             String failureMessage = "Run failed. Exit code: " + exitCode;
             if (!output.isEmpty()) {
                 failureMessage += "\nOutput:\n" + output;
             }
-            ResultEntity result = resultFactory.createResultEntity(false, failureMessage, null);
-            return resultRepository.save(result);
+            return resultFactory.createResultEntity(false, failureMessage, null);
+
         }
     }
 
