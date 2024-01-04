@@ -9,19 +9,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class ResultService {
 
-    @Autowired
-    private ResultEntityRepository resultEntityRepository;
+    private final ResultEntityRepository resultEntityRepository;
+
+    public ResultService(ResultEntityRepository resultEntityRepository) {
+        this.resultEntityRepository = resultEntityRepository;
+    }
 
     public ResultEntity getResultById(Long id) {
         return resultEntityRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Result not found with id: " + id));
-    }
-
-    public ResultEntityRepository getResultEntityRepository() {
-        return resultEntityRepository;
-    }
-
-    public void setResultEntityRepository(ResultEntityRepository resultEntityRepository) {
-        this.resultEntityRepository = resultEntityRepository;
     }
 }

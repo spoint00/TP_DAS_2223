@@ -105,11 +105,12 @@ public class ProjectRestController {
     @PostMapping("/{projectId}/compile")
     public ResponseEntity<String> compile(@PathVariable Long projectId) {
         try {
-            ResultEntity compilationResultEntity = projectService.compileProject(projectId);
-            if (compilationResultEntity.isSuccess()) {
-                return ResponseEntity.ok(compilationResultEntity.getMessage());
+            ResultEntity compilationResult = projectService.compileProject(projectId);
+            String response = compilationResult.getMessage() + "\n" + compilationResult.getOutput();
+            if (compilationResult.isSuccess()) {
+                return ResponseEntity.ok(response);
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(compilationResultEntity.getMessage());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -120,11 +121,12 @@ public class ProjectRestController {
     @PostMapping("/{projectId}/run")
     public ResponseEntity<String> run(@PathVariable Long projectId){
         try {
-            ResultEntity runResultEntity = projectService.runProject(projectId);
-            if (runResultEntity.isSuccess()) {
-                return ResponseEntity.ok(runResultEntity.getMessage());
+            ResultEntity runResult = projectService.runProject(projectId);
+            String response = runResult.getMessage() + "\n" + runResult.getOutput();
+            if (runResult.isSuccess()) {
+                return ResponseEntity.ok(response);
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(runResultEntity.getMessage());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();

@@ -30,7 +30,6 @@ public class ProjectEntity {
     @JoinColumn(name = "result_id")
     private ResultEntity resultEntity;
 
-
     public ProjectEntity() {
         this.buildStatus = AWAITING_QUEUE;
     }
@@ -82,7 +81,12 @@ public class ProjectEntity {
     public void setBuildStatus(BUILDSTATUS buildStatus) {
         this.buildStatus = buildStatus;
     }
-    public ResultEntity getResultEntity() {return resultEntity;}
 
-    public void setResultEntity(ResultEntity resultEntity) {this.resultEntity = resultEntity;}
+    public ResultEntity getResultEntity() {
+        return resultEntity;
+    }
+
+    public void setResultEntity(ResultEntity resultEntity) {
+        this.resultEntity = resultEntity;
+    }
 }

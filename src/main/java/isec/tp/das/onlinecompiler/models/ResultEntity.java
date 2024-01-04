@@ -1,5 +1,6 @@
 package isec.tp.das.onlinecompiler.models;
 
+import isec.tp.das.onlinecompiler.util.Helper;
 import jakarta.persistence.*;
 
 @Entity
@@ -13,9 +14,13 @@ public class ResultEntity {
     private String message;
     @Column
     private String output;
-    public ResultEntity() {
 
+    public ResultEntity() {
+        this.success = true;
+        this.message = Helper.defaultMessage;
+        this.output = Helper.defaultOutput;
     }
+
     public ResultEntity(boolean success, String message, String output) {
         this.success = success;
         this.message = message;
@@ -25,17 +30,26 @@ public class ResultEntity {
     public boolean isSuccess() {
         return success;
     }
-    public String getMessage() {
-        return message;
-    }
+
     public void setSuccess(boolean success) {
         this.success = success;
     }
+
+    public String getMessage() {
+        return message;
+    }
+
     public void setMessage(String message) {
         this.message = message;
     }
-    public String getOutput() {return output;}
-    public void setOutput(String output) {this.output = output;}
+
+    public String getOutput() {
+        return output;
+    }
+
+    public void setOutput(String output) {
+        this.output = output;
+    }
 
     public Long getId() {
         return id;

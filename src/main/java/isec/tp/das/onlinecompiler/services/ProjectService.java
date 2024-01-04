@@ -2,23 +2,20 @@ package isec.tp.das.onlinecompiler.services;
 
 import isec.tp.das.onlinecompiler.models.FileEntity;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
+import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
 import isec.tp.das.onlinecompiler.repository.ResultEntityRepository;
 import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
-import isec.tp.das.onlinecompiler.models.ResultEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,18 +27,19 @@ public class ProjectService {
     private final ResultEntityRepository resultRepository;
 
     private final ProjectEntityFactory projectFactory;
-
     private final ResultEntityFactory resultFactory;
 
     private final BuildManager bm;
 
-    public ProjectService(ProjectRepository projectRepository, ResultEntityRepository resultRepository, ProjectEntityFactory projectFactory, ResultEntityFactory resultFactory) {
+    public ProjectService(ProjectRepository projectRepository,
+                          ResultEntityRepository resultRepository,
+                          ProjectEntityFactory projectFactory,
+                          ResultEntityFactory resultFactory) {
         this.resultRepository = resultRepository;
         this.projectRepository = projectRepository;
         this.bm = BuildManager.getInstance();
         this.projectFactory = projectFactory;
         this.resultFactory = resultFactory;
-
     }
 
     public List<ProjectEntity> getAllProjects() {
@@ -109,32 +107,27 @@ public class ProjectService {
         }
     }
 
-    //TODO: usar uma factory para o Result
-    //NOTE: Result provavelmente vai sofrer alteracoes
     public ResultEntity compileProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = getProjectById(projectId);
         if (project != null) {
             return startCompilation(project);
         } else {
-            ResultEntity result = resultFactory.createResultEntity(false, "Project Not Found", null);
-            return resultRepository.save(result);
+            return resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
         }
     }
 
     //colocar compilacao a correr numa thread?
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         if (project.getBuildStatus() != IN_QUEUE) {
-            ResultEntity result = resultFactory.createResultEntity(false, "Project not in queue.", null);
-            return resultRepository.save(result);
+            return resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
         }
 
         String projectName = project.getName().replace(" ", "_");
-        Path exePath = Paths.get("./temp").resolve(projectName).resolve(projectName);
+        Path exePath = Helper.tempPath.resolve(projectName).resolve(projectName);
         List<String> filesPaths = Helper.getFilesPathsAsStrings(projectName, project.getCodeFiles());
 
         if (filesPaths.isEmpty()) {
-            ResultEntity result = resultFactory.createResultEntity(false, "No source files to compile.", null);
-            return resultRepository.save(result);
+            return updateProjectResult(project, false, Helper.noFilesToCompile, Helper.noOutput);
         }
 
         updateProjectBuildStatus(project, IN_PROGRESS);
@@ -149,61 +142,41 @@ public class ProjectService {
 
         // read the output from the process
         String output = readProcessOutput(compilerProcess);
+        if (output.isBlank())
+            output = Helper.noOutput;
+
+        bm.compilationCompleted(project);
 
         if (exitCode == 0) {
-            updateProjectBuildStatus(project, SUCCESS_BUILD);
-            bm.compilationCompleted(project);
-
             String successMessage = "Compilation successful.";
-            if (!output.isEmpty()) {
-                successMessage += "\nOutput:\n" + output;
-            }
-            // Cleanup temporary files
-            cleanupTempFiles(Paths.get("./temp").resolve(projectName));
-            ResultEntity result = resultFactory.createResultEntity(true, successMessage, null);
-            return resultRepository.save(result);
+
+            updateProjectBuildStatus(project, SUCCESS_BUILD);
+            Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
+
+            return updateProjectResult(project, true, successMessage, output);
         } else {
-            updateProjectBuildStatus(project, FAILURE_BUILD);
-            bm.compilationCompleted(project);
-
             String failureMessage = "Compilation failed. Exit code: " + exitCode;
-            if (!output.isEmpty()) {
-                failureMessage += "\nOutput:\n" + output;
-            }
-            // Cleanup temporary files
-            cleanupTempFiles(Paths.get("./temp").resolve(projectName));
-            ResultEntity result = resultFactory.createResultEntity(false, failureMessage, null);
-            return resultRepository.save(result);
-        }
-    }
 
-    private void cleanupTempFiles(Path tempDirectoryPath) {
-        try {
-            Files.walk(tempDirectoryPath)
-                    .filter(path -> !path.toString().endsWith(".exe"))
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-        } catch (IOException e) {
-            // Log the exception or handle it as per your requirement
-            System.err.println("Error occurred while deleting temp files: " + e.getMessage());
+            updateProjectBuildStatus(project, FAILURE_BUILD);
+            Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
+
+            return updateProjectResult(project, false, failureMessage, output);
         }
     }
 
     public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = getProjectById(projectId);
-        if(project == null){
-            ResultEntity result = resultFactory.createResultEntity(false, "Project is null", null);
-            return resultRepository.save(result);
-
+        if (project == null) {
+            return resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
         }
-        if (project.getBuildStatus() != SUCCESS_BUILD ) {
-            ResultEntity result = resultFactory.createResultEntity(false, "Project not in queue.", null);
-            return resultRepository.save(result);
+
+        if (project.getBuildStatus() != SUCCESS_BUILD) {
+            return resultFactory.createResultEntity(false, Helper.projectNotCompiled, Helper.noOutput);
         }
 
         // replace whitespaces with underscore
         String projectName = project.getName().replace(" ", "_");
-        Path exePath = Paths.get("./temp").resolve(projectName).resolve(projectName);
+        Path exePath = Helper.tempPath.resolve(projectName).resolve(projectName);
 
         ProcessBuilder runnerProcessBuilder = new ProcessBuilder(exePath.toString());
 
@@ -215,32 +188,21 @@ public class ProjectService {
 
         // read the output from the process
         String output = readProcessOutput(runnerProcess);
+        if (output.isBlank())
+            output = Helper.noOutput;
 
         if (exitCode == 0) {
-            updateProjectBuildStatus(project, SUCCESS_RUN);
             String successMessage = "Run successful.";
-            if (!output.isEmpty()) {
-                successMessage += "\nOutput:\n" + output;
-            }
-            ResultEntity result = resultFactory.createResultEntity(true, successMessage, output);
-            Optional<ResultEntity> resultEntityOptional = resultRepository.findById(projectId);
-            if (resultEntityOptional.isEmpty()) {
-                String failureMessage = "Run failed. Exit code: " + exitCode;
-                ResultEntity returnSmthing = resultFactory.createResultEntity(false, failureMessage, null);
-                return resultRepository.save(returnSmthing);
-            }else{
-                String success = "Run successful.";
-                result.setMessage(success);
-            }
-            return resultRepository.save(result);
-        } else {
-            updateProjectBuildStatus(project, FAILURE_RUN);
-            String failureMessage = "Run failed. Exit code: " + exitCode;
-            if (!output.isEmpty()) {
-                failureMessage += "\nOutput:\n" + output;
-            }
-            return resultFactory.createResultEntity(false, failureMessage, null);
 
+            updateProjectBuildStatus(project, SUCCESS_RUN);
+
+            return updateProjectResult(project, true, successMessage, output);
+        } else {
+            String failureMessage = "Run failed. Exit code: " + exitCode;
+
+            updateProjectBuildStatus(project, FAILURE_RUN);
+
+            return updateProjectResult(project, false, failureMessage, output);
         }
     }
 
@@ -248,6 +210,19 @@ public class ProjectService {
     private void updateProjectBuildStatus(ProjectEntity project, BUILDSTATUS buildstatus) {
         project.setBuildStatus(buildstatus);
         projectRepository.save(project);
+    }
+
+    // update project result and save in the db
+    private ResultEntity updateProjectResult(ProjectEntity project, boolean success, String message, String output) {
+        ResultEntity result = project.getResultEntity();
+
+        result.setSuccess(success);
+        result.setMessage(message);
+        result.setOutput(output);
+
+        projectRepository.save(project);
+
+        return result;
     }
 
     // read the output from the process
@@ -261,17 +236,6 @@ public class ProjectService {
             return output.toString();
         }
     }
-
-    //    public ProjectEntity getResults(Long projectId) {
-//        Optional<ProjectEntity> existingProjectOptional = projectRepository.findById(projectId);
-//        if (existingProjectOptional.isPresent()) {
-//            ProjectEntity existingProject = existingProjectOptional.get();
-//            //vais buscar status e output
-//            return projectRepository.save(existingProject);
-//        } else {
-//            return null;
-//        }
-//    }
 }
 
 
