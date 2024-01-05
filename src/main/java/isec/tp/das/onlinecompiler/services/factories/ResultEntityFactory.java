@@ -6,8 +6,8 @@ import isec.tp.das.onlinecompiler.models.ResultEntity;
 
 import java.util.List;
 
-public interface ProjectEntityFactory {
-    ProjectEntity createProjectEntity(String name, String description, List<FileEntity> fileEntities, ResultEntity resultEntity);
-    ProjectEntity createProjectEntity();
+public interface ResultEntityFactory {
+    ResultEntity createResultEntity( Boolean success,String message, String output);
+    ResultEntity createResultEntity();
 
 }

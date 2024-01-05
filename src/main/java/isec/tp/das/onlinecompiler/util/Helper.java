@@ -14,6 +14,17 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public class Helper {
+    public static String defaultMessage = "Default message";
+    public static String defaultOutput = "Default output";
+    public static String projectNotFound = "Project not found";
+    public static String noOutput = "No output";
+    public static String projectNotInQueue = "Project not in queue";
+    public static String noFilesToCompile = "No source files to compile";
+    public static String projectNotCompiled = "Compile project successfully before running";
+
+    public static Path tempPath = Paths.get("./temp");
+
+
     private Helper() {
     }
 
@@ -38,7 +49,7 @@ public class Helper {
 
     // convert array of bytes to file
     public static String convertToFile(String projectName, String fileName, byte[] fileContent) {
-        Path folderPath = Paths.get("./temp").resolve(projectName);
+        Path folderPath = tempPath.resolve(projectName);
         Path filePath = folderPath.resolve(fileName);
 
         try {
@@ -66,6 +77,7 @@ public class Helper {
         }
         return filesPaths;
     }
+
 
     // clean source code files from temp folder
     public static void cleanupTempFiles(Path tempDirectoryPath) throws IOException {

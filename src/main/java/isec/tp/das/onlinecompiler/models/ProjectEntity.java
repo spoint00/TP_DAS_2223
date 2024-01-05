@@ -26,15 +26,20 @@ public class ProjectEntity {
     @JoinColumn(name = "project_id")
     private List<FileEntity> codeFiles;
 
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "result_id")
+    private ResultEntity resultEntity;
+
     public ProjectEntity() {
         this.buildStatus = AWAITING_QUEUE;
     }
 
-    public ProjectEntity(String name, String description, List<FileEntity> codeFiles) {
+    public ProjectEntity(String name, String description, List<FileEntity> codeFiles, ResultEntity resultEntity) {
         this.name = name;
         this.description = description;
         this.codeFiles = codeFiles;
         this.buildStatus = AWAITING_QUEUE;
+        this.resultEntity = resultEntity;
     }
 
     public Long getId() {
@@ -75,5 +80,13 @@ public class ProjectEntity {
 
     public void setBuildStatus(BUILDSTATUS buildStatus) {
         this.buildStatus = buildStatus;
+    }
+
+    public ResultEntity getResultEntity() {
+        return resultEntity;
+    }
+
+    public void setResultEntity(ResultEntity resultEntity) {
+        this.resultEntity = resultEntity;
     }
 }
