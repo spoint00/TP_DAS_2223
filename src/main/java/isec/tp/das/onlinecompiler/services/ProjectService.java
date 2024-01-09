@@ -108,21 +108,26 @@ public class ProjectService {
     }
 
     public ResultEntity compileProject() throws IOException, InterruptedException {
-        Long nextProjectID = bm.processNextProject().getId();
-        ProjectEntity project = getProjectById(nextProjectID);
-        if (project != null) {
-            return startCompilation(project);
-        } else {
+        ProjectEntity nextProject = bm.processNextProject();
+        if (nextProject == null){
+            return resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
+        }
+
+        Long nextProjectID = nextProject.getId();
+        ProjectEntity projectEntity = getProjectById(nextProjectID);
+        if (projectEntity == null) {
             return resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+        } else {
+            if (projectEntity.getBuildStatus() != IN_QUEUE) {
+                return resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+            }
+
+            return startCompilation(projectEntity);
         }
     }
 
     //colocar compilacao a correr numa thread?
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
-        if (project.getBuildStatus() != IN_QUEUE) {
-            return resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
-        }
-
         String projectName = project.getName().replace(" ", "_");
         Path exePath = Helper.tempPath.resolve(projectName).resolve(projectName);
         List<String> filesPaths = Helper.getFilesPathsAsStrings(projectName, project.getCodeFiles());

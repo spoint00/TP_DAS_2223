@@ -21,6 +21,7 @@ public class Helper {
     public static String projectNotInQueue = "Project not in queue";
     public static String noFilesToCompile = "No source files to compile";
     public static String projectNotCompiled = "Compile project successfully before running";
+    public static String queueIsEmpty = "Project queue is empty";
 
     public static Path tempPath = Paths.get("./temp");
 

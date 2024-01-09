@@ -9,16 +9,13 @@ import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.AWAITING_QUEUE;
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.IN_QUEUE;
 
 public class BuildManager {
-    private static BuildManager instance;
+    private static final BuildManager instance = new BuildManager();
     private final List<ProjectEntity> projectList = new LinkedList<>();
 
     private BuildManager() {
     }
 
     public static synchronized BuildManager getInstance() {
-        if (instance == null) {
-            instance = new BuildManager();
-        }
         return instance;
     }
 
@@ -33,19 +30,6 @@ public class BuildManager {
         }
         return null;
     }
-
-//    public synchronized List<ProjectEntity> getAllProjects() {
-//        return new LinkedList<>(projectList);
-//    }
-//
-//    public synchronized ProjectEntity getProjectById(int projectId) {
-//        for (ProjectEntity project : projectList) {
-//            if (project.getId() == projectId) {
-//                return project;
-//            }
-//        }
-//        return null;
-//    }
 
     public void compilationCompleted(ProjectEntity project) {
         projectList.remove(project);
