@@ -47,10 +47,7 @@ public class ProjectService {
     }
 
     public ProjectEntity getProjectById(Long projectId) {
-        Optional<ProjectEntity> projectOptional = projectRepository.findById(projectId);
-
-        // return project or null
-        return projectOptional.orElse(null);
+        return projectRepository.findById(projectId).orElse(null);
     }
 
     public ProjectEntity createProject(String name, String description, List<MultipartFile> files) throws IOException {
@@ -62,7 +59,7 @@ public class ProjectService {
     }
 
     public ProjectEntity updateProject(Long projectId, String name, String description) {
-        ProjectEntity project = getProjectById(projectId);
+        ProjectEntity project = projectRepository.findById(projectId).orElse(null);
 
         if (project != null) {
             project.setName(name);
@@ -86,7 +83,7 @@ public class ProjectService {
     }
 
     public ProjectEntity addToQueue(Long projectId) {
-        ProjectEntity project = getProjectById(projectId);
+        ProjectEntity project = projectRepository.findById(projectId).orElse(null);
 
         if (project != null) {
             bm.addProject(project);
@@ -97,7 +94,7 @@ public class ProjectService {
     }
 
     public ProjectEntity removeFromQueue(Long projectId) {
-        ProjectEntity project = getProjectById(projectId);
+        ProjectEntity project = projectRepository.findById(projectId).orElse(null);
 
         if (project != null) {
             bm.abortProject(project);
@@ -114,7 +111,7 @@ public class ProjectService {
         }
 
         Long nextProjectID = nextProject.getId();
-        ProjectEntity projectEntity = getProjectById(nextProjectID);
+        ProjectEntity projectEntity = projectRepository.findById(nextProjectID).orElse(null);
         if (projectEntity == null) {
             return resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
         } else {
@@ -171,7 +168,7 @@ public class ProjectService {
     }
 
     public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
-        ProjectEntity project = getProjectById(projectId);
+        ProjectEntity project = projectRepository.findById(projectId).orElse(null);
         if (project == null) {
             return resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
         }

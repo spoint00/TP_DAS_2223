@@ -101,6 +101,7 @@ public class ProjectRestController {
         }
     }
 
+    // TODO: ha um bug relativamente aos projetos em queue e tentar compilar
     @PostMapping("/compile")
     public ResponseEntity<String> compile() {
         try {
