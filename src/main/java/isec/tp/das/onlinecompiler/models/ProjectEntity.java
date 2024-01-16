@@ -4,6 +4,7 @@ import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import jakarta.persistence.*;
 
 import java.util.List;
+import java.util.Objects;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.AWAITING_QUEUE;
 
@@ -32,6 +33,19 @@ public class ProjectEntity {
 
     public ProjectEntity() {
         this.buildStatus = AWAITING_QUEUE;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        ProjectEntity that = (ProjectEntity) obj;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, description, buildStatus, codeFiles, resultEntity);
     }
 
     public ProjectEntity(String name, String description, List<FileEntity> codeFiles, ResultEntity resultEntity) {

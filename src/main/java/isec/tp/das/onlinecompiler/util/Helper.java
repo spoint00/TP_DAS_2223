@@ -17,6 +17,7 @@ public class Helper {
     public static String defaultMessage = "Default message";
     public static String defaultOutput = "Default output";
     public static String projectNotFound = "Project not found";
+    public static String emptyQueue = "The queue is empty";
     public static String noOutput = "No output";
     public static String projectNotInQueue = "Project not in queue";
     public static String noFilesToCompile = "No source files to compile";
