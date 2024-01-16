@@ -31,21 +31,13 @@ public class ProjectEntity {
     @JoinColumn(name = "result_id")
     private ResultEntity resultEntity;
 
+
+    @Column(nullable = false)
+    private boolean saveOutput;
+
     public ProjectEntity() {
         this.buildStatus = AWAITING_QUEUE;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        ProjectEntity that = (ProjectEntity) obj;
-        return Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, name, description, buildStatus, codeFiles, resultEntity);
+        this.saveOutput = false;
     }
 
     public ProjectEntity(String name, String description, List<FileEntity> codeFiles, ResultEntity resultEntity) {
@@ -54,6 +46,7 @@ public class ProjectEntity {
         this.codeFiles = codeFiles;
         this.buildStatus = AWAITING_QUEUE;
         this.resultEntity = resultEntity;
+        this.saveOutput = false;
     }
 
     public Long getId() {
@@ -102,5 +95,22 @@ public class ProjectEntity {
 
     public void setResultEntity(ResultEntity resultEntity) {
         this.resultEntity = resultEntity;
+    }
+
+    public boolean isSaveOutput() {return saveOutput;}
+
+    public void setSaveOutput(boolean saveOutput) {this.saveOutput = saveOutput;}
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        ProjectEntity that = (ProjectEntity) obj;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, description, buildStatus, codeFiles, resultEntity, saveOutput);
     }
 }

@@ -1,6 +1,7 @@
 package isec.tp.das.onlinecompiler.controllers;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
+import isec.tp.das.onlinecompiler.services.ProjectDecorator;
 import isec.tp.das.onlinecompiler.services.ProjectService;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,21 +17,20 @@ import java.util.List;
 @RequestMapping("/projects")
 public class ProjectRestController {
 
-    private final ProjectService projectService;
-
+    private final ProjectDecorator projectDecorator;
     @Autowired
-    public ProjectRestController(ProjectService projectService) {
-        this.projectService = projectService;
+    public ProjectRestController(ProjectDecorator projectDecorator) {
+        this.projectDecorator = projectDecorator;
     }
 
     @GetMapping
     public List<ProjectEntity> getAllProjects() {
-        return projectService.getAllProjects();
+        return projectDecorator.wrappedService.getAllProjects();
     }
 
     @GetMapping("/{projectId}")
     public ResponseEntity<ProjectEntity> getProjectById(@PathVariable Long projectId) {
-        ProjectEntity project = projectService.getProjectById(projectId);
+        ProjectEntity project = projectDecorator.wrappedService.getProjectById(projectId);
 
         if (project != null) {
             return ResponseEntity.ok(project);
@@ -48,7 +48,7 @@ public class ProjectRestController {
             @RequestParam("files") List<MultipartFile> files
     ) {
         try {
-            ProjectEntity project = projectService.createProject(name, description, files);
+            ProjectEntity project = projectDecorator.wrappedService.createProject(name, description, files);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(project);
         } catch (IOException e) {
@@ -65,7 +65,7 @@ public class ProjectRestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("files") List<MultipartFile> files){
         try {
-            ProjectEntity project = projectService.updateProject(projectId,name, description, files);
+            ProjectEntity project = projectDecorator.wrappedService.updateProject(projectId,name, description, files);
 
             if (project != null) {
                 return ResponseEntity.ok(project);
@@ -85,7 +85,7 @@ public class ProjectRestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value ="files",required = false) List<MultipartFile> files){
         try {
-            ProjectEntity project = projectService.patchProject(projectId,name, description, files);
+            ProjectEntity project = projectDecorator.wrappedService.patchProject(projectId,name, description, files);
             if (project != null) {
                 return ResponseEntity.ok(project);
             } else {
@@ -99,7 +99,7 @@ public class ProjectRestController {
 
     @DeleteMapping("/{projectId}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long projectId) {
-        if (projectService.deleteProject(projectId)) {
+        if (projectDecorator.wrappedService.deleteProject(projectId)) {
             return ResponseEntity.noContent().build();
         } else {
             return ResponseEntity.notFound().build();
@@ -108,7 +108,7 @@ public class ProjectRestController {
 
     @PostMapping("/{projectId}/addToQueue")
     public ResponseEntity<ProjectEntity> addToQueue(@PathVariable Long projectId){
-        ProjectEntity project = projectService.addToQueue(projectId);
+        ProjectEntity project = projectDecorator.wrappedService.addToQueue(projectId);
         if (project != null) {
             return ResponseEntity.ok(project);
         } else {
@@ -118,19 +118,17 @@ public class ProjectRestController {
 
     @PostMapping("/{projectId}/removeFromQueue")
     public ResponseEntity<ProjectEntity> removeFromQueue(@PathVariable Long projectId) {
-        ProjectEntity project = projectService.removeFromQueue(projectId);
+        ProjectEntity project = projectDecorator.wrappedService.removeFromQueue(projectId);
         if (project != null) {
             return ResponseEntity.ok(project);
         } else {
             return ResponseEntity.notFound().build();
         }
     }
-
-    // TODO: ha um bug relativamente aos projetos em queue e tentar compilar
     @PostMapping("/compile")
     public ResponseEntity<String> compile() {
         try {
-            ResultEntity compilationResult = projectService.compileProject();
+            ResultEntity compilationResult = projectDecorator.wrappedService.compileProject();
             String response = compilationResult.getMessage() + "\n" + compilationResult.getOutput();
             if (compilationResult.isSuccess()) {
                 return ResponseEntity.ok(response);
@@ -146,7 +144,7 @@ public class ProjectRestController {
     @PostMapping("/{projectId}/run")
     public ResponseEntity<String> run(@PathVariable Long projectId){
         try {
-            ResultEntity runResult = projectService.runProject(projectId);
+            ResultEntity runResult = projectDecorator.runProject(projectId);
             String response = runResult.getMessage() + "\n" + runResult.getOutput();
             if (runResult.isSuccess()) {
                 return ResponseEntity.ok(response);
@@ -156,6 +154,16 @@ public class ProjectRestController {
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error running the project: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{projectId}/saveOutput")
+    public ResponseEntity<String> saveOuput(@PathVariable Long projectId,@RequestParam boolean change){
+        boolean saveOutput = projectDecorator.wrappedService.saveConfiguration(projectId, change);
+        if(saveOutput){
+            return ResponseEntity.status(HttpStatus.OK).body("updated with success");
+        }else{
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
         }
     }
 }

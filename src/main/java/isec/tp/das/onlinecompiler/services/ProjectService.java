@@ -20,8 +20,7 @@ import java.util.List;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
 
-@Service
-public class ProjectService {
+public class ProjectService implements DecoratorInterface{
     private final ProjectRepository projectRepository;
     private final ResultEntityRepository resultRepository;
 
@@ -188,7 +187,7 @@ public class ProjectService {
             return updateProjectResult(project, false, failureMessage, output);
         }
     }
-
+    @Override
     public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = projectRepository.findById(projectId).orElse(null);
         if (project == null) {
@@ -260,6 +259,16 @@ public class ProjectService {
             }
             return output.toString();
         }
+    }
+
+    public boolean saveConfiguration(Long projectId, boolean change) {
+        ProjectEntity project = projectRepository.findById(projectId).orElse(null);
+        if (project == null) {
+            return false;
+        }
+        project.setSaveOutput(change);
+        projectRepository.save(project);
+        return true;
     }
 }
 
