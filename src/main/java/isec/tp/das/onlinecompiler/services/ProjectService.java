@@ -9,7 +9,6 @@ import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;

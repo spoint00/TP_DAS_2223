@@ -1,5 +1,7 @@
 package isec.tp.das.onlinecompiler;
 
+import isec.tp.das.onlinecompiler.repository.ProjectRepository;
+import isec.tp.das.onlinecompiler.repository.ResultEntityRepository;
 import isec.tp.das.onlinecompiler.services.ProjectDecorator;
 import isec.tp.das.onlinecompiler.services.ProjectService;
 import isec.tp.das.onlinecompiler.services.factories.ConcreteProjectEntityFactory;
@@ -22,8 +24,8 @@ public class AppConfig {
     }
 
     @Bean
-    public ProjectService projectService() {
-        return new
+    public ProjectService projectService(ProjectRepository projectRepository, ResultEntityRepository resultRepository, ProjectEntityFactory projectFactory, ResultEntityFactory resultFactory) {
+        return new ProjectService(projectRepository, resultRepository, projectFactory, resultFactory);
     }
 
     @Bean
