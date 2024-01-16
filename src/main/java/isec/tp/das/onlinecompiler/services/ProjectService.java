@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
 
@@ -58,13 +57,36 @@ public class ProjectService {
         return projectRepository.save(project);
     }
 
-    public ProjectEntity updateProject(Long projectId, String name, String description) {
+    public ProjectEntity updateProject(Long projectId, String name, String description, List<MultipartFile> files) throws IOException {
         ProjectEntity project = projectRepository.findById(projectId).orElse(null);
 
         if (project != null) {
             project.setName(name);
             if (description != null) {
                 project.setDescription(description);
+            }
+            List<FileEntity> fileEntities = Helper.createFileEntities(files);
+            project.getCodeFiles().clear();
+            project.getCodeFiles().addAll(fileEntities);
+            return projectRepository.save(project);
+        } else {
+            return null;
+        }
+    }
+
+    public ProjectEntity patchProject(Long projectId, String name, String description, List<MultipartFile> files) throws IOException {
+        ProjectEntity project = projectRepository.findById(projectId).orElse(null);
+
+        if (project != null) {
+            if(name != null )
+                project.setName(name);
+            if (description  != null) {
+                project.setDescription(description);
+            }
+            if (files != null) {
+                List<FileEntity> fileEntities = Helper.createFileEntities(files);
+                project.getCodeFiles().clear();
+                project.getCodeFiles().addAll(fileEntities);
             }
             return projectRepository.save(project);
         } else {

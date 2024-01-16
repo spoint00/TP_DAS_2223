@@ -57,18 +57,43 @@ public class ProjectRestController {
         }
     }
 
-    //to update files use the file endpoints
+    //Update Project (whole)
     @PutMapping("/{projectId}")
     public ResponseEntity<ProjectEntity> updateProject(
             @PathVariable Long projectId,
             @RequestParam("name") String name,
-            @RequestParam(value = "description", required = false) String description) {
-        ProjectEntity project = projectService.updateProject(projectId,name, description);
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam("files") List<MultipartFile> files){
+        try {
+            ProjectEntity project = projectService.updateProject(projectId,name, description, files);
 
-        if (project != null) {
-            return ResponseEntity.ok(project);
-        } else {
-            return ResponseEntity.notFound().build();
+            if (project != null) {
+                return ResponseEntity.ok(project);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PatchMapping("/{projectId}")
+    public ResponseEntity<?> patchProject(
+            @PathVariable Long projectId,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value ="files",required = false) List<MultipartFile> files){
+        try {
+            ProjectEntity project = projectService.patchProject(projectId,name, description, files);
+            if (project != null) {
+                return ResponseEntity.ok(project);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
