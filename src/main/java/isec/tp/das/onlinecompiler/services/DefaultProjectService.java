@@ -127,19 +127,26 @@ public class DefaultProjectService implements ProjectService{
     public ResultEntity compileProject() throws IOException, InterruptedException {
         ProjectEntity nextProject = bm.processNextProject();
         if (nextProject == null){
-            return resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
+            ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
+            bm.notifyBuildCompleted(nextProject, result);
+            return result;
         }
 
         Long nextProjectID = nextProject.getId();
         ProjectEntity projectEntity = projectRepository.findById(nextProjectID).orElse(null);
         if (projectEntity == null) {
-            return resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+            bm.notifyBuildCompleted(projectEntity,result);
+            return result;
         } else {
             if (projectEntity.getBuildStatus() != IN_QUEUE) {
-                return resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                bm.notifyBuildCompleted(projectEntity, result);
+                return result;
             }
-
-            return startCompilation(projectEntity);
+            ResultEntity result = startCompilation(projectEntity);
+            bm.notifyBuildCompleted(projectEntity,result);
+            return result;
         }
     }
 

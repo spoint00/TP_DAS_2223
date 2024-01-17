@@ -156,6 +156,7 @@ public class ProjectRestController {
         }
     }
 
+    //TODO apagar ficheiros do temp?
     @PostMapping("/{projectId}/saveOutput")
     public ResponseEntity<String> saveOuput(@PathVariable Long projectId,@RequestParam boolean change){
         boolean saveOutput = defaultProjectDecorator.saveConfiguration(projectId, change);

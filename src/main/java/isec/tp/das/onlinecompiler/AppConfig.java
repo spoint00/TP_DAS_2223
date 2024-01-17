@@ -2,8 +2,10 @@ package isec.tp.das.onlinecompiler;
 
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
 import isec.tp.das.onlinecompiler.repository.ResultEntityRepository;
+import isec.tp.das.onlinecompiler.services.BuildManager;
 import isec.tp.das.onlinecompiler.services.DefaultProjectDecorator;
 import isec.tp.das.onlinecompiler.services.DefaultProjectService;
+import isec.tp.das.onlinecompiler.services.DiscordNotifier;
 import isec.tp.das.onlinecompiler.services.factories.ConcreteProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ConcreteResultEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
@@ -31,6 +33,13 @@ public class AppConfig {
     @Bean
     public DefaultProjectDecorator projectDecorator(DefaultProjectService defaultProjectService) {
         return new DefaultProjectDecorator(defaultProjectService);
+    }
+
+    @Bean
+    public BuildManager buildManager() {
+        BuildManager buildManager = BuildManager.getInstance();
+        buildManager.addBuildListener(new DiscordNotifier());
+        return buildManager;
     }
 }
 
