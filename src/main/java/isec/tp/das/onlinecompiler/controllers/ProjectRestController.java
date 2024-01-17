@@ -1,8 +1,7 @@
 package isec.tp.das.onlinecompiler.controllers;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
-import isec.tp.das.onlinecompiler.services.ProjectDecorator;
-import isec.tp.das.onlinecompiler.services.ProjectService;
+import isec.tp.das.onlinecompiler.services.DefaultProjectDecorator;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,20 +16,20 @@ import java.util.List;
 @RequestMapping("/projects")
 public class ProjectRestController {
 
-    private final ProjectDecorator projectDecorator;
+    private final DefaultProjectDecorator defaultProjectDecorator;
     @Autowired
-    public ProjectRestController(ProjectDecorator projectDecorator) {
-        this.projectDecorator = projectDecorator;
+    public ProjectRestController(DefaultProjectDecorator defaultProjectDecorator) {
+        this.defaultProjectDecorator = defaultProjectDecorator;
     }
 
     @GetMapping
     public List<ProjectEntity> getAllProjects() {
-        return projectDecorator.wrappedService.getAllProjects();
+        return defaultProjectDecorator.getAllProjects();
     }
 
     @GetMapping("/{projectId}")
     public ResponseEntity<ProjectEntity> getProjectById(@PathVariable Long projectId) {
-        ProjectEntity project = projectDecorator.wrappedService.getProjectById(projectId);
+        ProjectEntity project = defaultProjectDecorator.getProjectById(projectId);
 
         if (project != null) {
             return ResponseEntity.ok(project);
@@ -48,7 +47,7 @@ public class ProjectRestController {
             @RequestParam("files") List<MultipartFile> files
     ) {
         try {
-            ProjectEntity project = projectDecorator.wrappedService.createProject(name, description, files);
+            ProjectEntity project = defaultProjectDecorator.createProject(name, description, files);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(project);
         } catch (IOException e) {
@@ -65,7 +64,7 @@ public class ProjectRestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("files") List<MultipartFile> files){
         try {
-            ProjectEntity project = projectDecorator.wrappedService.updateProject(projectId,name, description, files);
+            ProjectEntity project = defaultProjectDecorator.updateProject(projectId,name, description, files);
 
             if (project != null) {
                 return ResponseEntity.ok(project);
@@ -85,7 +84,7 @@ public class ProjectRestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value ="files",required = false) List<MultipartFile> files){
         try {
-            ProjectEntity project = projectDecorator.wrappedService.patchProject(projectId,name, description, files);
+            ProjectEntity project = defaultProjectDecorator.patchProject(projectId,name, description, files);
             if (project != null) {
                 return ResponseEntity.ok(project);
             } else {
@@ -99,7 +98,7 @@ public class ProjectRestController {
 
     @DeleteMapping("/{projectId}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long projectId) {
-        if (projectDecorator.wrappedService.deleteProject(projectId)) {
+        if (defaultProjectDecorator.deleteProject(projectId)) {
             return ResponseEntity.noContent().build();
         } else {
             return ResponseEntity.notFound().build();
@@ -108,7 +107,7 @@ public class ProjectRestController {
 
     @PostMapping("/{projectId}/addToQueue")
     public ResponseEntity<ProjectEntity> addToQueue(@PathVariable Long projectId){
-        ProjectEntity project = projectDecorator.wrappedService.addToQueue(projectId);
+        ProjectEntity project = defaultProjectDecorator.addToQueue(projectId);
         if (project != null) {
             return ResponseEntity.ok(project);
         } else {
@@ -118,7 +117,7 @@ public class ProjectRestController {
 
     @PostMapping("/{projectId}/removeFromQueue")
     public ResponseEntity<ProjectEntity> removeFromQueue(@PathVariable Long projectId) {
-        ProjectEntity project = projectDecorator.wrappedService.removeFromQueue(projectId);
+        ProjectEntity project = defaultProjectDecorator.removeFromQueue(projectId);
         if (project != null) {
             return ResponseEntity.ok(project);
         } else {
@@ -128,7 +127,7 @@ public class ProjectRestController {
     @PostMapping("/compile")
     public ResponseEntity<String> compile() {
         try {
-            ResultEntity compilationResult = projectDecorator.wrappedService.compileProject();
+            ResultEntity compilationResult = defaultProjectDecorator.compileProject();
             String response = compilationResult.getMessage() + "\n" + compilationResult.getOutput();
             if (compilationResult.isSuccess()) {
                 return ResponseEntity.ok(response);
@@ -144,7 +143,7 @@ public class ProjectRestController {
     @PostMapping("/{projectId}/run")
     public ResponseEntity<String> run(@PathVariable Long projectId){
         try {
-            ResultEntity runResult = projectDecorator.runProject(projectId);
+            ResultEntity runResult = defaultProjectDecorator.runProject(projectId);
             String response = runResult.getMessage() + "\n" + runResult.getOutput();
             if (runResult.isSuccess()) {
                 return ResponseEntity.ok(response);
@@ -159,7 +158,7 @@ public class ProjectRestController {
 
     @PostMapping("/{projectId}/saveOutput")
     public ResponseEntity<String> saveOuput(@PathVariable Long projectId,@RequestParam boolean change){
-        boolean saveOutput = projectDecorator.wrappedService.saveConfiguration(projectId, change);
+        boolean saveOutput = defaultProjectDecorator.saveConfiguration(projectId, change);
         if(saveOutput){
             return ResponseEntity.status(HttpStatus.OK).body("updated with success");
         }else{
