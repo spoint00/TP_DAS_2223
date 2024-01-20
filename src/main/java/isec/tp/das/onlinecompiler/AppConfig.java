@@ -2,6 +2,7 @@ package isec.tp.das.onlinecompiler;
 
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
 import isec.tp.das.onlinecompiler.repository.ResultEntityRepository;
+import isec.tp.das.onlinecompiler.services.BuildManager;
 import isec.tp.das.onlinecompiler.services.DefaultProjectDecorator;
 import isec.tp.das.onlinecompiler.services.DefaultProjectService;
 import isec.tp.das.onlinecompiler.services.factories.ConcreteProjectEntityFactory;
@@ -24,13 +25,18 @@ public class AppConfig {
     }
 
     @Bean
-    public DefaultProjectService projectService(ProjectRepository projectRepository, ResultEntityRepository resultRepository, ProjectEntityFactory projectFactory, ResultEntityFactory resultFactory) {
-        return new DefaultProjectService(projectRepository, resultRepository, projectFactory, resultFactory);
+    public DefaultProjectService projectService(ProjectRepository projectRepository, ProjectEntityFactory projectFactory, ResultEntityFactory resultFactory) {
+        return new DefaultProjectService(projectRepository, projectFactory, resultFactory);
     }
 
     @Bean
     public DefaultProjectDecorator projectDecorator(DefaultProjectService defaultProjectService) {
         return new DefaultProjectDecorator(defaultProjectService);
     }
+
+//    @Bean
+//    public BuildManager buildManager() {
+//        return BuildManager.getInstance();
+//    }
 }
 

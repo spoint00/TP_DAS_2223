@@ -1,12 +1,10 @@
 package isec.tp.das.onlinecompiler.controllers;
 
-import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.services.ResultService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +22,7 @@ public class ResultRestController {
     @GetMapping("")
     public ResponseEntity<List<Map<String, String>>> getAllResults(
             @RequestParam(required = false) String fields) {
-        List<Map<String, String >> results = resultService.getAllResults(fields);
+        List<Map<String, String>> results = resultService.getAllResults(fields);
 
         if (results.isEmpty()) {
             return ResponseEntity.noContent().build();

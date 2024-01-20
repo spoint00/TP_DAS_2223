@@ -2,21 +2,17 @@ package isec.tp.das.onlinecompiler.services;
 
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.repository.ResultEntityRepository;
-import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ResultService {
 
     private final ResultEntityRepository resultEntityRepository;
-    private final ResultEntityFactory resultEntityFactory;
 
-    public ResultService(ResultEntityRepository resultEntityRepository, ResultEntityFactory resultEntityFactory) {
+    public ResultService(ResultEntityRepository resultEntityRepository) {
         this.resultEntityRepository = resultEntityRepository;
-        this.resultEntityFactory = resultEntityFactory;
     }
 
     public Map<String, String> getResultById(Long resultId, String fields) {

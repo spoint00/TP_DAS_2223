@@ -1,8 +1,8 @@
 package isec.tp.das.onlinecompiler.controllers;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
-import isec.tp.das.onlinecompiler.services.DefaultProjectDecorator;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
+import isec.tp.das.onlinecompiler.services.DefaultProjectDecorator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +17,7 @@ import java.util.List;
 public class ProjectRestController {
 
     private final DefaultProjectDecorator defaultProjectDecorator;
+
     @Autowired
     public ProjectRestController(DefaultProjectDecorator defaultProjectDecorator) {
         this.defaultProjectDecorator = defaultProjectDecorator;
@@ -62,9 +63,9 @@ public class ProjectRestController {
             @PathVariable Long projectId,
             @RequestParam("name") String name,
             @RequestParam(value = "description", required = false) String description,
-            @RequestParam("files") List<MultipartFile> files){
+            @RequestParam("files") List<MultipartFile> files) {
         try {
-            ProjectEntity project = defaultProjectDecorator.updateProject(projectId,name, description, files);
+            ProjectEntity project = defaultProjectDecorator.updateProject(projectId, name, description, files);
 
             if (project != null) {
                 return ResponseEntity.ok(project);
@@ -82,9 +83,9 @@ public class ProjectRestController {
             @PathVariable Long projectId,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "description", required = false) String description,
-            @RequestParam(value ="files",required = false) List<MultipartFile> files){
+            @RequestParam(value = "files", required = false) List<MultipartFile> files) {
         try {
-            ProjectEntity project = defaultProjectDecorator.patchProject(projectId,name, description, files);
+            ProjectEntity project = defaultProjectDecorator.patchProject(projectId, name, description, files);
             if (project != null) {
                 return ResponseEntity.ok(project);
             } else {
@@ -106,7 +107,7 @@ public class ProjectRestController {
     }
 
     @PostMapping("/{projectId}/addToQueue")
-    public ResponseEntity<ProjectEntity> addToQueue(@PathVariable Long projectId){
+    public ResponseEntity<ProjectEntity> addToQueue(@PathVariable Long projectId) {
         ProjectEntity project = defaultProjectDecorator.addToQueue(projectId);
         if (project != null) {
             return ResponseEntity.ok(project);
@@ -124,6 +125,7 @@ public class ProjectRestController {
             return ResponseEntity.notFound().build();
         }
     }
+
     @PostMapping("/compile")
     public ResponseEntity<String> compile() {
         try {
@@ -141,7 +143,7 @@ public class ProjectRestController {
     }
 
     @PostMapping("/{projectId}/run")
-    public ResponseEntity<String> run(@PathVariable Long projectId){
+    public ResponseEntity<String> run(@PathVariable Long projectId) {
         try {
             ResultEntity runResult = defaultProjectDecorator.runProject(projectId);
             String response = runResult.getMessage() + "\n" + runResult.getOutput();
@@ -156,12 +158,33 @@ public class ProjectRestController {
         }
     }
 
+    //TODO apagar ficheiros do temp?
     @PostMapping("/{projectId}/saveOutput")
-    public ResponseEntity<String> saveOuput(@PathVariable Long projectId,@RequestParam boolean change){
-        boolean saveOutput = defaultProjectDecorator.saveConfiguration(projectId, change);
-        if(saveOutput){
+    public ResponseEntity<String> saveOuput(@PathVariable Long projectId, @RequestParam boolean output) {
+        boolean saveOutput = defaultProjectDecorator.saveConfiguration(projectId, output);
+        if (saveOutput) {
             return ResponseEntity.status(HttpStatus.OK).body("updated with success");
-        }else{
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+        }
+    }
+
+    @PostMapping("/addListener")
+    public ResponseEntity<String> addListener() {
+        boolean result = defaultProjectDecorator.addListener();
+        if (result) {
+            return ResponseEntity.status(HttpStatus.OK).body("Listener added");
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+        }
+    }
+
+    @PostMapping("/{listenerId}/removeListener")
+    public ResponseEntity<String> removeListener(@PathVariable Long listenerId) {
+        boolean result = defaultProjectDecorator.removeListener(listenerId);
+        if (result) {
+            return ResponseEntity.status(HttpStatus.OK).body("Listener removed");
+        } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
         }
     }

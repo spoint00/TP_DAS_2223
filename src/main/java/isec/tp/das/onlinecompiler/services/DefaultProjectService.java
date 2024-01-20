@@ -4,7 +4,6 @@ import isec.tp.das.onlinecompiler.models.FileEntity;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
-import isec.tp.das.onlinecompiler.repository.ResultEntityRepository;
 import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
@@ -19,9 +18,8 @@ import java.util.List;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
 
-public class DefaultProjectService implements ProjectService{
+public class DefaultProjectService implements ProjectService {
     private final ProjectRepository projectRepository;
-    private final ResultEntityRepository resultRepository;
 
     private final ProjectEntityFactory projectFactory;
     private final ResultEntityFactory resultFactory;
@@ -29,10 +27,8 @@ public class DefaultProjectService implements ProjectService{
     private final BuildManager bm;
 
     public DefaultProjectService(ProjectRepository projectRepository,
-                                 ResultEntityRepository resultRepository,
                                  ProjectEntityFactory projectFactory,
                                  ResultEntityFactory resultFactory) {
-        this.resultRepository = resultRepository;
         this.projectRepository = projectRepository;
         this.bm = BuildManager.getInstance();
         this.projectFactory = projectFactory;
@@ -76,9 +72,9 @@ public class DefaultProjectService implements ProjectService{
         ProjectEntity project = projectRepository.findById(projectId).orElse(null);
 
         if (project != null) {
-            if(name != null )
+            if (name != null)
                 project.setName(name);
-            if (description  != null) {
+            if (description != null) {
                 project.setDescription(description);
             }
             if (files != null) {
@@ -126,20 +122,27 @@ public class DefaultProjectService implements ProjectService{
 
     public ResultEntity compileProject() throws IOException, InterruptedException {
         ProjectEntity nextProject = bm.processNextProject();
-        if (nextProject == null){
-            return resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
+        if (nextProject == null) {
+            ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
+            bm.notifyBuildCompleted(null, result);
+            return result;
         }
 
         Long nextProjectID = nextProject.getId();
         ProjectEntity projectEntity = projectRepository.findById(nextProjectID).orElse(null);
         if (projectEntity == null) {
-            return resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+            bm.notifyBuildCompleted(null, result);
+            return result;
         } else {
             if (projectEntity.getBuildStatus() != IN_QUEUE) {
-                return resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                bm.notifyBuildCompleted(projectEntity, result);
+                return result;
             }
-
-            return startCompilation(projectEntity);
+            ResultEntity result = startCompilation(projectEntity);
+            bm.notifyBuildCompleted(projectEntity, result);
+            return result;
         }
     }
 
@@ -186,6 +189,7 @@ public class DefaultProjectService implements ProjectService{
             return updateProjectResult(project, false, failureMessage, output);
         }
     }
+
     @Override
     public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = projectRepository.findById(projectId).orElse(null);
@@ -260,14 +264,25 @@ public class DefaultProjectService implements ProjectService{
         }
     }
 
-    public boolean saveConfiguration(Long projectId, boolean change) {
+    public boolean saveConfiguration(Long projectId, boolean output) {
         ProjectEntity project = projectRepository.findById(projectId).orElse(null);
         if (project == null) {
             return false;
         }
-        project.setSaveOutput(change);
+
+        project.setSaveOutput(output);
         projectRepository.save(project);
         return true;
+    }
+
+    @Override
+    public boolean addListener() {
+        return bm.addBuildListener(new Observer());
+    }
+
+    @Override
+    public boolean removeListener(Long listenerId) {
+        return bm.removeBuildListener(listenerId);
     }
 }
 

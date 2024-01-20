@@ -24,8 +24,8 @@ public class DefaultProjectDecorator implements ProjectDecorator {
     public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
         ResultEntity result = projectService.runProject(projectId);
         ProjectEntity project = getProjectById(projectId);
-        if (result != null) {
-            if(project.isSaveOutput()){
+        if (project != null) {
+            if (project.isSaveOutput()) {
                 saveOutputToFile(result.getOutput(), project.getName());
             }
         }
@@ -50,12 +50,12 @@ public class DefaultProjectDecorator implements ProjectDecorator {
 
     @Override
     public ProjectEntity updateProject(Long projectId, String name, String description, List<MultipartFile> files) throws IOException {
-        return projectService.updateProject(projectId,name, description, files);
+        return projectService.updateProject(projectId, name, description, files);
     }
 
     @Override
     public ProjectEntity patchProject(Long projectId, String name, String description, List<MultipartFile> files) throws IOException {
-        return projectService.patchProject(projectId,name, description, files);
+        return projectService.patchProject(projectId, name, description, files);
     }
 
     @Override
@@ -79,25 +79,34 @@ public class DefaultProjectDecorator implements ProjectDecorator {
     }
 
     @Override
-    public boolean saveConfiguration(Long projectId, boolean change) {
-        return projectService.saveConfiguration(projectId,change);
+    public boolean saveConfiguration(Long projectId, boolean output) {
+        return projectService.saveConfiguration(projectId, output);
     }
 
-    private void saveOutputToFile(String output, String projectName) throws IOException {
-        String filename = projectName + ".txt";
-        Path folderPath = Helper.tempPath.resolve(projectName);
+    private void saveOutputToFile(String output, String projectName) {
+        String pName = projectName.replace(" ", "_");
+        String filename = pName + ".txt";
+        Path folderPath = Helper.tempPath.resolve(pName);
         Path filePath = folderPath.resolve(filename);
 
-        if (!Files.exists(folderPath)) {
+        try {
             Files.createDirectories(folderPath);
-        }
-
-        try (BufferedWriter writer = Files.newBufferedWriter(filePath)) {
-            writer.write(output);
+            try (BufferedWriter writer = Files.newBufferedWriter(filePath)) {
+                writer.write(output);
+            }
         } catch (IOException e) {
-            throw new IOException("Failed to write output to file: " + filePath, e);
+            e.printStackTrace();
         }
     }
 
+
+    public boolean addListener() {
+        return projectService.addListener();
+    }
+
+    @Override
+    public boolean removeListener(Long listenerId) {
+        return projectService.removeListener(listenerId);
+    }
 
 }

@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface ProjectEntityFactory {
     ProjectEntity createProjectEntity(String name, String description, List<FileEntity> fileEntities, ResultEntity resultEntity);
+
     ProjectEntity createProjectEntity();
 
 }
