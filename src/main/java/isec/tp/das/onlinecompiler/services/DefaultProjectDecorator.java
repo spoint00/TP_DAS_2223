@@ -3,6 +3,8 @@ package isec.tp.das.onlinecompiler.services;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.util.Helper;
+import jakarta.transaction.Transactional;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class DefaultProjectDecorator implements ProjectDecorator {
@@ -74,7 +77,9 @@ public class DefaultProjectDecorator implements ProjectDecorator {
     }
 
     @Override
-    public ResultEntity compileProject() throws IOException, InterruptedException {
+    @Async("asyncExecutor")
+    @Transactional
+    public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
         return projectService.compileProject();
     }
 

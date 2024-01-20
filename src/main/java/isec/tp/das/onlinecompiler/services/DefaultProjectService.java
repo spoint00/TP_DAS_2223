@@ -8,6 +8,8 @@ import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
+import jakarta.transaction.Transactional;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -15,10 +17,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
 
-public class DefaultProjectService implements ProjectService {
+public class DefaultProjectService implements ProjectService{
     private final ProjectRepository projectRepository;
 
     private final ProjectEntityFactory projectFactory;
@@ -120,12 +123,14 @@ public class DefaultProjectService implements ProjectService {
         }
     }
 
-    public ResultEntity compileProject() throws IOException, InterruptedException {
+    @Async("asyncExecutor")
+    @Transactional
+    public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
         ProjectEntity nextProject = bm.processNextProject();
         if (nextProject == null) {
             ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
             bm.notifyBuildCompleted(null, result);
-            return result;
+            return  CompletableFuture.completedFuture(result);
         }
 
         Long nextProjectID = nextProject.getId();
@@ -133,16 +138,16 @@ public class DefaultProjectService implements ProjectService {
         if (projectEntity == null) {
             ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
             bm.notifyBuildCompleted(null, result);
-            return result;
+            return  CompletableFuture.completedFuture(result);
         } else {
             if (projectEntity.getBuildStatus() != IN_QUEUE) {
                 ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
                 bm.notifyBuildCompleted(projectEntity, result);
-                return result;
+                return  CompletableFuture.completedFuture(result);
             }
             ResultEntity result = startCompilation(projectEntity);
             bm.notifyBuildCompleted(projectEntity, result);
-            return result;
+            return  CompletableFuture.completedFuture(result);
         }
     }
 
@@ -189,7 +194,6 @@ public class DefaultProjectService implements ProjectService {
             return updateProjectResult(project, false, failureMessage, output);
         }
     }
-
     @Override
     public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = projectRepository.findById(projectId).orElse(null);
