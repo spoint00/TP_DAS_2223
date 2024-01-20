@@ -100,4 +100,13 @@ public class DefaultProjectDecorator implements ProjectDecorator {
     }
 
 
+    public boolean addListener() {
+        return projectService.addListener();
+    }
+
+    @Override
+    public boolean removeListener(Long listenerId) {
+        return projectService.removeListener(listenerId);
+    }
+
 }

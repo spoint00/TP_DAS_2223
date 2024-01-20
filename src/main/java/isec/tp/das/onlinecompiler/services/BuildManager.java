@@ -43,12 +43,16 @@ public class BuildManager {
         projectList.remove(project);
     }
 
-    public void addBuildListener(BuildListener listener) {
-        listeners.add(listener);
+    public boolean addBuildListener(BuildListener listener) {
+        return listeners.add(listener);
     }
 
-    public void removeBuildListener(BuildListener listener) {
-        listeners.remove(listener);
+    public boolean removeBuildListener(Long listenerId) {
+       for (BuildListener listener: listeners)
+            if(listenerId.equals(listener.getId())){
+                return listeners.remove(listener);
+            }
+        return false;
     }
 
     protected void notifyBuildCompleted(ProjectEntity project, ResultEntity message) {

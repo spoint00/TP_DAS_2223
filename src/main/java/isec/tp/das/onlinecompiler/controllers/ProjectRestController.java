@@ -166,4 +166,24 @@ public class ProjectRestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
         }
     }
+
+    @PostMapping("/addListener")
+    public ResponseEntity<String> addListener(){
+        boolean result = defaultProjectDecorator.addListener();
+        if(result){
+            return ResponseEntity.status(HttpStatus.OK).body("Listener added");
+        }else{
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+        }
+    }
+
+    @PostMapping("/{listenerId}/removeListener")
+    public ResponseEntity<String> removeListener(@PathVariable Long listenerId){
+        boolean result = defaultProjectDecorator.removeListener(listenerId);
+        if(result){
+            return ResponseEntity.status(HttpStatus.OK).body("Listener removed");
+        }else{
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+        }
+    }
 }

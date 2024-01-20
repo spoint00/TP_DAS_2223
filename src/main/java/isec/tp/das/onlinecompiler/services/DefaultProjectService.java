@@ -124,6 +124,7 @@ public class DefaultProjectService implements ProjectService{
         }
     }
 
+    //TODO: dentro do if, nextProject pode ser null linha 132
     public ResultEntity compileProject() throws IOException, InterruptedException {
         ProjectEntity nextProject = bm.processNextProject();
         if (nextProject == null){
@@ -275,6 +276,16 @@ public class DefaultProjectService implements ProjectService{
         project.setSaveOutput(change);
         projectRepository.save(project);
         return true;
+    }
+
+    @Override
+    public boolean addListener() {
+        return bm.addBuildListener( new Observer());
+    }
+
+    @Override
+    public boolean removeListener(Long listenerId) {
+        return bm.removeBuildListener(listenerId);
     }
 }
 

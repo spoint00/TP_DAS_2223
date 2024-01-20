@@ -5,4 +5,6 @@ import isec.tp.das.onlinecompiler.models.ResultEntity;
 
 public interface BuildListener {
     void onBuildCompleted(ProjectEntity project, ResultEntity message);
+
+    public Long getId();
 }

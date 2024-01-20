@@ -29,4 +29,8 @@ public interface ProjectService{
     ResultEntity compileProject() throws IOException, InterruptedException;
 
     boolean saveConfiguration(Long projectId, boolean change);
+
+    boolean addListener();
+
+    boolean removeListener(Long listenerId);
 }
