@@ -25,8 +25,8 @@ public class AppConfig {
     }
 
     @Bean
-    public DefaultProjectService projectService(ProjectRepository projectRepository, ResultEntityRepository resultRepository, ProjectEntityFactory projectFactory, ResultEntityFactory resultFactory) {
-        return new DefaultProjectService(projectRepository, resultRepository, projectFactory, resultFactory);
+    public DefaultProjectService projectService(ProjectRepository projectRepository, ProjectEntityFactory projectFactory, ResultEntityFactory resultFactory) {
+        return new DefaultProjectService(projectRepository, projectFactory, resultFactory);
     }
 
     @Bean
@@ -34,9 +34,9 @@ public class AppConfig {
         return new DefaultProjectDecorator(defaultProjectService);
     }
 
-    @Bean
-    public BuildManager buildManager() {
-        return BuildManager.getInstance();
-    }
+//    @Bean
+//    public BuildManager buildManager() {
+//        return BuildManager.getInstance();
+//    }
 }
 

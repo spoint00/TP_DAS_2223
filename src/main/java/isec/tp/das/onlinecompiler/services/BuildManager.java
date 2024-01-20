@@ -13,7 +13,7 @@ import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.IN_QUEUE;
 public class BuildManager {
     private static final BuildManager instance = new BuildManager();
     private final List<ProjectEntity> projectList = new LinkedList<>();
-    private List<BuildListener> listeners = new ArrayList<>();
+    private final List<BuildListener> listeners = new ArrayList<>();
 
     private BuildManager() {
     }
@@ -48,14 +48,17 @@ public class BuildManager {
     }
 
     public boolean removeBuildListener(Long listenerId) {
-       for (BuildListener listener: listeners)
-            if(listenerId.equals(listener.getId())){
+        for (BuildListener listener : listeners)
+            if (listenerId.equals(listener.getId())) {
                 return listeners.remove(listener);
             }
         return false;
     }
 
     protected void notifyBuildCompleted(ProjectEntity project, ResultEntity message) {
+        if (project == null)
+            return;
+
         for (BuildListener listener : listeners) {
             listener.onBuildCompleted(project, message);
         }

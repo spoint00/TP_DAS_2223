@@ -97,9 +97,13 @@ public class ProjectEntity {
         this.resultEntity = resultEntity;
     }
 
-    public boolean isSaveOutput() {return saveOutput;}
+    public boolean isSaveOutput() {
+        return saveOutput;
+    }
 
-    public void setSaveOutput(boolean saveOutput) {this.saveOutput = saveOutput;}
+    public void setSaveOutput(boolean saveOutput) {
+        this.saveOutput = saveOutput;
+    }
 
     @Override
     public boolean equals(Object obj) {

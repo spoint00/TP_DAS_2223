@@ -17,7 +17,6 @@ public class Helper {
     public static String defaultMessage = "Default message";
     public static String defaultOutput = "Default output";
     public static String projectNotFound = "Project not found";
-    public static String emptyQueue = "The queue is empty";
     public static String noOutput = "No output";
     public static String projectNotInQueue = "Project not in queue";
     public static String noFilesToCompile = "No source files to compile";
@@ -38,12 +37,14 @@ public class Helper {
             String fileName = multipartFile.getOriginalFilename();
             byte[] fileContent = multipartFile.getBytes();
 
-            if (fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h")) {
-                FileEntity fileEntity = new FileEntity(fileName, fileContent);
-                fileEntities.add(fileEntity);
-            } else {
-                // You can either throw an exception or handle it based on your application's needs
-                throw new IllegalArgumentException("Invalid file type: " + fileName);
+            if (fileName != null){
+                if (fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h")) {
+                    FileEntity fileEntity = new FileEntity(fileName, fileContent);
+                    fileEntities.add(fileEntity);
+                } else {
+                    // You can either throw an exception or handle it based on your application's needs
+                    throw new IllegalArgumentException("Invalid file type: " + fileName);
+                }
             }
         }
         return fileEntities;
