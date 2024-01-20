@@ -17,7 +17,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
 
@@ -26,7 +29,6 @@ public class DefaultProjectService implements ProjectService{
 
     private final ProjectEntityFactory projectFactory;
     private final ResultEntityFactory resultFactory;
-
     private final BuildManager bm;
 
     public DefaultProjectService(ProjectRepository projectRepository,
@@ -145,7 +147,8 @@ public class DefaultProjectService implements ProjectService{
                 bm.notifyBuildCompleted(projectEntity, result);
                 return  CompletableFuture.completedFuture(result);
             }
-            ResultEntity result = startCompilation(projectEntity);
+            ResultEntity result = bm.callStartCompilation();
+            bm.putBuildTasks(nextProjectID, buildTask);
             bm.notifyBuildCompleted(projectEntity, result);
             return  CompletableFuture.completedFuture(result);
         }
@@ -287,6 +290,18 @@ public class DefaultProjectService implements ProjectService{
     @Override
     public boolean removeListener(Long listenerId) {
         return bm.removeBuildListener(listenerId);
+    }
+
+    @Override
+    public String cancelBuild(Long projectId) {
+        // Implementation to cancel the build
+        Future<?> buildTask = buildTasks.get(projectId);
+        if (buildTask != null && !buildTask.isDone()) {
+            buildTask.cancel(true); // Attempt to cancel the build
+            buildTasks.remove(projectId);
+            return "Build cancelled for project " + projectId;
+        }
+        return "No active build to cancel for project " + projectId;
     }
 }
 

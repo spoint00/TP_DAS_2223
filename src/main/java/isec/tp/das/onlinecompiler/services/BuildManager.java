@@ -6,6 +6,10 @@ import isec.tp.das.onlinecompiler.models.ResultEntity;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.AWAITING_QUEUE;
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.IN_QUEUE;
@@ -14,6 +18,7 @@ public class BuildManager {
     private static final BuildManager instance = new BuildManager();
     private final List<ProjectEntity> projectList = new LinkedList<>();
     private final List<BuildListener> listeners = new ArrayList<>();
+    private final Map<Long, Future<?>> buildTasks = new ConcurrentHashMap<>();
 
     private BuildManager() {
     }
@@ -63,5 +68,16 @@ public class BuildManager {
             listener.onBuildCompleted(project, message);
         }
     }
+
+    public void putBuildTasks(Long projectId, CompletableFuture<ResultEntity> buildTask) {
+        buildTasks.put(projectId, buildTask);
+    }
+
+    public ResultEntity callStartCompilation(){
+        CompletableFuture<ResultEntity> buildTask = CompletableFuture.supplyAsync(() -> {
+            return startCompilation(projectEntity);
+        });
+    }
+
 }
 

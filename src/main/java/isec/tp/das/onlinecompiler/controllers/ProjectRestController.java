@@ -193,22 +193,9 @@ public class ProjectRestController {
         }
     }
 
-    @PostMapping("/pauseBuild")
-    public ResponseEntity<String> pauseBuild() {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
-
-        //todo
-    }
-
-    @PostMapping("/resumeBuild")
-    public ResponseEntity<String> resumeBuild() {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
-
-        //todo
-    }
-
     @PostMapping("/cancelBuild")
-    public ResponseEntity<String> cancelBuild() {
+    public ResponseEntity<String> cancelBuild(@PathVariable Long projectId) {
+        String result = projectDecorator.cancelBuild(projectId);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
 
         //todo

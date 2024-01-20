@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 @Service
 public class DefaultProjectDecorator implements ProjectDecorator {
@@ -114,4 +115,8 @@ public class DefaultProjectDecorator implements ProjectDecorator {
         return projectService.removeListener(listenerId);
     }
 
+    @Override
+    public String cancelBuild(Long projectId) {
+        return projectService.cancelBuild(projectId);
+    }
 }

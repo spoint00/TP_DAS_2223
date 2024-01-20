@@ -38,4 +38,6 @@ public interface ProjectService {
     boolean addListener();
 
     boolean removeListener(Long listenerId);
+
+    String cancelBuild(Long projectId);
 }
