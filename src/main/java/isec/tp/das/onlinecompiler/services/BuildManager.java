@@ -9,16 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.AWAITING_QUEUE;
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.IN_QUEUE;
 
 public class BuildManager {
     private static final BuildManager instance = new BuildManager();
-    private final List<ProjectEntity> projectList = new LinkedList<>();
+    private final List<ProjectEntity> projectsToCompile = new LinkedList<>();
     private final List<BuildListener> listeners = new ArrayList<>();
-    private final Map<Long, Future<?>> buildTasks = new ConcurrentHashMap<>();
+    private final Map<Long, CompletableFuture<ResultEntity>> compileFutures = new ConcurrentHashMap<>();
 
     private BuildManager() {
     }
@@ -29,23 +28,23 @@ public class BuildManager {
 
     public synchronized void addProject(ProjectEntity project) {
         project.setBuildStatus(IN_QUEUE);
-        projectList.add(project);
+        projectsToCompile.add(project);
     }
 
     public synchronized ProjectEntity processNextProject() {
-        if (!projectList.isEmpty()) {
-            return projectList.removeFirst();
+        if (!projectsToCompile.isEmpty()) {
+            return projectsToCompile.removeFirst();
         }
         return null;
     }
 
     public void compilationCompleted(ProjectEntity project) {
-        projectList.remove(project);
+        projectsToCompile.remove(project);
     }
 
     public synchronized void abortProject(ProjectEntity project) {
         project.setBuildStatus(AWAITING_QUEUE);
-        projectList.remove(project);
+        projectsToCompile.remove(project);
     }
 
     public boolean addBuildListener(BuildListener listener) {
@@ -60,7 +59,7 @@ public class BuildManager {
         return false;
     }
 
-    protected void notifyBuildCompleted(ProjectEntity project, ResultEntity message) {
+    public void notifyBuildCompleted(ProjectEntity project, ResultEntity message) {
         if (project == null)
             return;
 
@@ -69,8 +68,25 @@ public class BuildManager {
         }
     }
 
-    public void putBuildTasks(Long projectId, CompletableFuture<ResultEntity> buildTask) {
-        buildTasks.put(projectId, buildTask);
+    public CompletableFuture<ResultEntity> getCompilationFuture(Long projectId) {
+        return compileFutures.get(projectId);
+    }
+
+    public void addCompileFuture(Long projectId, CompletableFuture<ResultEntity> future) {
+        compileFutures.put(projectId, future);
+    }
+
+    public void removeCompileFuture(Long projectId) {
+        compileFutures.remove(projectId);
+    }
+
+    public boolean cancelCompilation(Long projectId) {
+        CompletableFuture<ResultEntity> future = compileFutures.get(projectId);
+
+        if (future != null && !future.isDone()) {
+            return future.cancel(true);
+        }
+        return false;
     }
 }
 

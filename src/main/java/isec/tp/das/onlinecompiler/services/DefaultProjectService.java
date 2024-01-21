@@ -9,7 +9,6 @@ import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -123,35 +122,51 @@ public class DefaultProjectService implements ProjectService {
     }
 
     @Async("asyncExecutor")
-//    @Transactional
     public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
+        CompletableFuture<ResultEntity> future = new CompletableFuture<>();
         ProjectEntity nextProject = bm.processNextProject();
+
+        // project queue is empty
         if (nextProject == null) {
             ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
             bm.notifyBuildCompleted(null, result);
-            return CompletableFuture.completedFuture(result);
+
+            future.complete(result);
+            return future;
         }
 
         Long nextProjectID = nextProject.getId();
-        ProjectEntity projectEntity = projectRepository.findById(nextProjectID).orElse(null);
-        if (projectEntity == null) {
+        ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
+
+        // project not found
+        if (project == null) {
             ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
             bm.notifyBuildCompleted(null, result);
-            return CompletableFuture.completedFuture(result);
-        } else {
-            if (projectEntity.getBuildStatus() != IN_QUEUE) {
-                ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
-                bm.notifyBuildCompleted(projectEntity, result);
-                return CompletableFuture.completedFuture(result);
-            }
-//            ResultEntity result = bm.callStartCompilation();
-//            bm.putBuildTasks(nextProjectID, buildTask);
-            ResultEntity result = startCompilation(projectEntity);
-            bm.notifyBuildCompleted(projectEntity, result);
-            return CompletableFuture.completedFuture(result);
-        }
-    }
 
+            future.complete(result);
+        } else {
+            // project not in queue
+            if (project.getBuildStatus() != IN_QUEUE) {
+                ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                bm.notifyBuildCompleted(project, result);
+
+                future.complete(result);
+                return future;
+            }
+
+            updateProjectBuildStatus(project, COMPILATION_IN_PROGRESS);
+            bm.addCompileFuture(project.getId(), future);
+
+            ResultEntity result = startCompilation(project);
+            // only for TESTING
+            Thread.sleep(8000);
+
+            future.complete(result);
+            //TODO: bug: ao cancelar a compilation o listener continua a mandar uma mensagem de compilation successful
+            compilationFinished(project, result);
+        }
+        return future;
+    }
 
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         String projectName = project.getName().replace(" ", "_");
@@ -161,9 +176,6 @@ public class DefaultProjectService implements ProjectService {
         if (filesPaths.isEmpty()) {
             return updateProjectResult(project, false, Helper.noFilesToCompile, Helper.noOutput);
         }
-
-        updateProjectBuildStatus(project, IN_PROGRESS);
-        Thread.sleep(8000);
 
         ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
         compilerProcessBuilder.command().addAll(filesPaths);
@@ -178,8 +190,6 @@ public class DefaultProjectService implements ProjectService {
         String output = readProcessOutput(compilerProcess);
         if (output.isBlank())
             output = Helper.noOutput;
-
-        bm.compilationCompleted(project);
 
         if (exitCode == 0) {
             String successMessage = "Compilation successful.";
@@ -196,6 +206,12 @@ public class DefaultProjectService implements ProjectService {
 
             return updateProjectResult(project, false, failureMessage, output);
         }
+    }
+
+    private void compilationFinished(ProjectEntity project, ResultEntity result) {
+        bm.compilationCompleted(project);
+        bm.removeCompileFuture(project.getId());
+        bm.notifyBuildCompleted(project, result);
     }
 
     @Override
@@ -294,15 +310,13 @@ public class DefaultProjectService implements ProjectService {
     }
 
     @Override
-    public String cancelBuild(Long projectId) {
-//        // Implementation to cancel the build
-//        Future<?> buildTask = buildTasks.get(projectId);
-//        if (buildTask != null && !buildTask.isDone()) {
-//            buildTask.cancel(true); // Attempt to cancel the build
-//            buildTasks.remove(projectId);
-//            return "Build cancelled for project " + projectId;
-//        }
-        return "No active build to cancel for project " + projectId;
+    public boolean cancelCompilation(Long projectId) {
+        boolean canceled = bm.cancelCompilation(projectId);
+
+        if (canceled) {
+            projectRepository.findById(projectId).ifPresent(project -> updateProjectBuildStatus(project, CANCELED));
+        }
+        return canceled;
     }
 }
 

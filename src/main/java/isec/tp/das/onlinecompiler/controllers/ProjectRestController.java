@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -128,8 +129,14 @@ public class ProjectRestController {
     }
 
     @PostMapping("/compile")
-    public CompletableFuture<ResponseEntity<String>> compile() throws IOException, InterruptedException {
-        CompletableFuture<ResultEntity> completableFuture = projectDecorator.compileProject();
+    public CompletableFuture<ResponseEntity<String>> compile() {
+        CompletableFuture<ResultEntity> completableFuture;
+        try {
+            completableFuture = projectDecorator.compileProject();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + e.getMessage()));
+        }
 
         return completableFuture.thenApply(resultEntity -> {
             String response = resultEntity.getMessage() + "\n" + resultEntity.getOutput();
@@ -139,7 +146,10 @@ public class ProjectRestController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
         }).exceptionally(ex -> {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
+            if (ex.getCause() instanceof CancellationException) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Compilation canceled by user");
+            } else
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
         });
     }
 
@@ -176,7 +186,7 @@ public class ProjectRestController {
         if (result) {
             return ResponseEntity.status(HttpStatus.OK).body("Listener added");
         } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding listener");
         }
     }
 
@@ -186,20 +196,24 @@ public class ProjectRestController {
         if (result) {
             return ResponseEntity.status(HttpStatus.OK).body("Listener removed");
         } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error removing listener");
         }
     }
 
-    //TODO
-    @PostMapping("/{projectId}/cancelBuild")
-    public ResponseEntity<String> cancelBuild(@PathVariable Long projectId) {
-//        String result = projectDecorator.cancelBuild(projectId);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("WIP");
+    @PostMapping("/{projectId}/cancelCompilation")
+    public ResponseEntity<String> cancelCompilation(@PathVariable Long projectId) {
+        boolean result = projectDecorator.cancelCompilation(projectId);
+        if (result) {
+            return ResponseEntity.status(HttpStatus.OK).body("Compilation canceled with success");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error canceling the compilation. Check if the compilation is in progress.");
+        }
     }
 
-    //TODO
     @PostMapping("/{projectId}/checkStatus")
     public ResponseEntity<String> checkStatus(@PathVariable Long projectId) {
+        //TODO
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("WIP");
     }
 }

@@ -6,7 +6,6 @@ import isec.tp.das.onlinecompiler.util.Helper;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedWriter;
@@ -79,7 +78,6 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
 
     @Override
     @Async("asyncExecutor")
-//    @Transactional
     public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
         return projectService.compileProject();
     }
@@ -99,8 +97,8 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
     }
 
     @Override
-    public String cancelBuild(Long projectId) {
-        return projectService.cancelBuild(projectId);
+    public boolean cancelCompilation(Long projectId) {
+        return projectService.cancelCompilation(projectId);
     }
 
     private void saveOutputToFile(String output, String projectName) {
