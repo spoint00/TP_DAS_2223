@@ -72,12 +72,5 @@ public class BuildManager {
     public void putBuildTasks(Long projectId, CompletableFuture<ResultEntity> buildTask) {
         buildTasks.put(projectId, buildTask);
     }
-
-    public ResultEntity callStartCompilation(){
-        CompletableFuture<ResultEntity> buildTask = CompletableFuture.supplyAsync(() -> {
-            return startCompilation(projectEntity);
-        });
-    }
-
 }
 

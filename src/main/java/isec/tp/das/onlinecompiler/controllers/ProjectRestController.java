@@ -13,13 +13,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static java.lang.Thread.sleep;
-
 @RestController
 @RequestMapping("/projects")
 public class ProjectRestController {
 
     private final ProjectDecorator projectDecorator;
+
     @Autowired
     public ProjectRestController(ProjectDecorator projectDecorator) {
         this.projectDecorator = projectDecorator;
@@ -67,7 +66,7 @@ public class ProjectRestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("files") List<MultipartFile> files) {
         try {
-            ProjectEntity project = projectDecorator.updateProject(projectId,name, description, files);
+            ProjectEntity project = projectDecorator.updateProject(projectId, name, description, files);
 
             if (project != null) {
                 return ResponseEntity.ok(project);
@@ -87,7 +86,7 @@ public class ProjectRestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "files", required = false) List<MultipartFile> files) {
         try {
-            ProjectEntity project = projectDecorator.patchProject(projectId,name, description, files);
+            ProjectEntity project = projectDecorator.patchProject(projectId, name, description, files);
             if (project != null) {
                 return ResponseEntity.ok(project);
             } else {
@@ -130,20 +129,18 @@ public class ProjectRestController {
 
     @PostMapping("/compile")
     public CompletableFuture<ResponseEntity<String>> compile() throws IOException, InterruptedException {
-        sleep(100000);
-        return projectDecorator.compileProject()
-                .thenApply(resultEntity -> {
-                    String response = resultEntity.getMessage() + "\n" + resultEntity.getOutput();
-                    if (resultEntity.isSuccess()) {
-                        return ResponseEntity.ok(response);
-                    } else {
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-                    }
-                })
-                .exceptionally(ex -> {
-                    // Handle any exceptions here
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
-                });
+        CompletableFuture<ResultEntity> completableFuture = projectDecorator.compileProject();
+
+        return completableFuture.thenApply(resultEntity -> {
+            String response = resultEntity.getMessage() + "\n" + resultEntity.getOutput();
+            if (resultEntity.isSuccess()) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+        }).exceptionally(ex -> {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
+        });
     }
 
     @PostMapping("/{projectId}/run")
@@ -193,18 +190,16 @@ public class ProjectRestController {
         }
     }
 
-    @PostMapping("/cancelBuild")
+    //TODO
+    @PostMapping("/{projectId}/cancelBuild")
     public ResponseEntity<String> cancelBuild(@PathVariable Long projectId) {
-        String result = projectDecorator.cancelBuild(projectId);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
-
-        //todo
+//        String result = projectDecorator.cancelBuild(projectId);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("WIP");
     }
 
-    @PostMapping("/checkStatus")
-    public ResponseEntity<String> checkStatus() {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
-        //todo
+    //TODO
+    @PostMapping("/{projectId}/checkStatus")
+    public ResponseEntity<String> checkStatus(@PathVariable Long projectId) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("WIP");
     }
-
 }

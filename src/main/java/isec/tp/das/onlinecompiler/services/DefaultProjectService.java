@@ -8,8 +8,8 @@ import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
-import jakarta.transaction.Transactional;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -17,14 +17,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
 
-public class DefaultProjectService implements ProjectService{
+public class DefaultProjectService implements ProjectService {
     private final ProjectRepository projectRepository;
 
     private final ProjectEntityFactory projectFactory;
@@ -126,13 +123,13 @@ public class DefaultProjectService implements ProjectService{
     }
 
     @Async("asyncExecutor")
-    @Transactional
+//    @Transactional
     public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
         ProjectEntity nextProject = bm.processNextProject();
         if (nextProject == null) {
             ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
             bm.notifyBuildCompleted(null, result);
-            return  CompletableFuture.completedFuture(result);
+            return CompletableFuture.completedFuture(result);
         }
 
         Long nextProjectID = nextProject.getId();
@@ -140,21 +137,22 @@ public class DefaultProjectService implements ProjectService{
         if (projectEntity == null) {
             ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
             bm.notifyBuildCompleted(null, result);
-            return  CompletableFuture.completedFuture(result);
+            return CompletableFuture.completedFuture(result);
         } else {
             if (projectEntity.getBuildStatus() != IN_QUEUE) {
                 ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
                 bm.notifyBuildCompleted(projectEntity, result);
-                return  CompletableFuture.completedFuture(result);
+                return CompletableFuture.completedFuture(result);
             }
-            ResultEntity result = bm.callStartCompilation();
-            bm.putBuildTasks(nextProjectID, buildTask);
+//            ResultEntity result = bm.callStartCompilation();
+//            bm.putBuildTasks(nextProjectID, buildTask);
+            ResultEntity result = startCompilation(projectEntity);
             bm.notifyBuildCompleted(projectEntity, result);
-            return  CompletableFuture.completedFuture(result);
+            return CompletableFuture.completedFuture(result);
         }
     }
 
-    //colocar compilacao a correr numa thread?
+
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         String projectName = project.getName().replace(" ", "_");
         Path exePath = Helper.tempPath.resolve(projectName).resolve(projectName);
@@ -165,6 +163,8 @@ public class DefaultProjectService implements ProjectService{
         }
 
         updateProjectBuildStatus(project, IN_PROGRESS);
+        Thread.sleep(8000);
+
         ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
         compilerProcessBuilder.command().addAll(filesPaths);
 
@@ -197,6 +197,7 @@ public class DefaultProjectService implements ProjectService{
             return updateProjectResult(project, false, failureMessage, output);
         }
     }
+
     @Override
     public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = projectRepository.findById(projectId).orElse(null);
@@ -294,13 +295,13 @@ public class DefaultProjectService implements ProjectService{
 
     @Override
     public String cancelBuild(Long projectId) {
-        // Implementation to cancel the build
-        Future<?> buildTask = buildTasks.get(projectId);
-        if (buildTask != null && !buildTask.isDone()) {
-            buildTask.cancel(true); // Attempt to cancel the build
-            buildTasks.remove(projectId);
-            return "Build cancelled for project " + projectId;
-        }
+//        // Implementation to cancel the build
+//        Future<?> buildTask = buildTasks.get(projectId);
+//        if (buildTask != null && !buildTask.isDone()) {
+//            buildTask.cancel(true); // Attempt to cancel the build
+//            buildTasks.remove(projectId);
+//            return "Build cancelled for project " + projectId;
+//        }
         return "No active build to cancel for project " + projectId;
     }
 }

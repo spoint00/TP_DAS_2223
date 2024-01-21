@@ -3,9 +3,10 @@ package isec.tp.das.onlinecompiler.services;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.util.Helper;
-import jakarta.transaction.Transactional;
+
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedWriter;
@@ -14,13 +15,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 @Service
-public class DefaultProjectDecorator implements ProjectDecorator {
+public class SaveOutputProjectDecorator implements ProjectDecorator {
     private final ProjectService projectService;
 
-    public DefaultProjectDecorator(ProjectService projectService) {
+    public SaveOutputProjectDecorator(ProjectService projectService) {
         this.projectService = projectService;
     }
 
@@ -79,7 +79,7 @@ public class DefaultProjectDecorator implements ProjectDecorator {
 
     @Override
     @Async("asyncExecutor")
-    @Transactional
+//    @Transactional
     public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
         return projectService.compileProject();
     }
@@ -87,6 +87,20 @@ public class DefaultProjectDecorator implements ProjectDecorator {
     @Override
     public boolean saveConfiguration(Long projectId, boolean output) {
         return projectService.saveConfiguration(projectId, output);
+    }
+
+    public boolean addListener() {
+        return projectService.addListener();
+    }
+
+    @Override
+    public boolean removeListener(Long listenerId) {
+        return projectService.removeListener(listenerId);
+    }
+
+    @Override
+    public String cancelBuild(Long projectId) {
+        return projectService.cancelBuild(projectId);
     }
 
     private void saveOutputToFile(String output, String projectName) {
@@ -103,20 +117,5 @@ public class DefaultProjectDecorator implements ProjectDecorator {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-
-    public boolean addListener() {
-        return projectService.addListener();
-    }
-
-    @Override
-    public boolean removeListener(Long listenerId) {
-        return projectService.removeListener(listenerId);
-    }
-
-    @Override
-    public String cancelBuild(Long projectId) {
-        return projectService.cancelBuild(projectId);
     }
 }

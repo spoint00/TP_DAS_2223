@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface ProjectService {
-    ResultEntity runProject(Long projectId) throws IOException, InterruptedException;
-
     List<ProjectEntity> getAllProjects();
 
     ProjectEntity getProjectById(Long projectId);
@@ -30,8 +28,10 @@ public interface ProjectService {
     ProjectEntity removeFromQueue(Long projectId);
 
     @Async("asyncExecutor")
-    @Transactional
+//    @Transactional
     CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException;
+
+    ResultEntity runProject(Long projectId) throws IOException, InterruptedException;
 
     boolean saveConfiguration(Long projectId, boolean output);
 

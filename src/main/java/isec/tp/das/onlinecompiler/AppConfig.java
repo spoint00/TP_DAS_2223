@@ -1,7 +1,7 @@
 package isec.tp.das.onlinecompiler;
 
 import isec.tp.das.onlinecompiler.repository.ProjectRepository;
-import isec.tp.das.onlinecompiler.services.DefaultProjectDecorator;
+import isec.tp.das.onlinecompiler.services.SaveOutputProjectDecorator;
 import isec.tp.das.onlinecompiler.services.DefaultProjectService;
 import isec.tp.das.onlinecompiler.services.ProjectService;
 import isec.tp.das.onlinecompiler.services.factories.ConcreteProjectEntityFactory;
@@ -34,16 +34,16 @@ public class AppConfig {
     }
 
     @Bean
-    public DefaultProjectDecorator projectDecorator(ProjectService projectService) {
-        return new DefaultProjectDecorator(projectService);
+    public SaveOutputProjectDecorator projectDecorator(ProjectService projectService) {
+        return new SaveOutputProjectDecorator(projectService);
     }
 
     @Bean(name = "asyncExecutor")
     public Executor asyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(3);
-        executor.setMaxPoolSize(5);
-        executor.setQueueCapacity(20);
+        executor.setMaxPoolSize(6);
+        executor.setQueueCapacity(10);
         executor.setThreadNamePrefix("AsynchThread-");
         executor.initialize();
         return executor;
