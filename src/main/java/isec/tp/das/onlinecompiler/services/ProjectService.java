@@ -2,6 +2,7 @@ package isec.tp.das.onlinecompiler.services;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
+import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,4 +39,8 @@ public interface ProjectService {
     boolean removeListener(Long listenerId);
 
     boolean cancelCompilation(Long projectId);
+
+    BUILDSTATUS checkStatus(Long projectId);
+
+    List<String> checkQueue();
 }

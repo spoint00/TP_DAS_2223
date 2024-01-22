@@ -2,6 +2,7 @@ package isec.tp.das.onlinecompiler.services;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
+import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -97,6 +98,16 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
     @Override
     public boolean cancelCompilation(Long projectId) {
         return projectService.cancelCompilation(projectId);
+    }
+
+    @Override
+    public BUILDSTATUS checkStatus(Long projectId) {
+        return projectService.checkStatus(projectId);
+    }
+
+    @Override
+    public List<String> checkQueue() {
+        return projectService.checkQueue();
     }
 
     private void saveOutputToFile(String output, String projectName) {

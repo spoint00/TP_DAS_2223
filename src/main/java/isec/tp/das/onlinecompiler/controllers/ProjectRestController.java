@@ -3,6 +3,7 @@ package isec.tp.das.onlinecompiler.controllers;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.services.ProjectDecorator;
+import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -41,7 +41,7 @@ public class ProjectRestController {
         }
     }
 
-    // TODO: verificaçao: (no project e no file) permitir apenas guardar ficheiros com extensao .c, .cpp, .h
+    // TODO: verificaçao: permitir apenas guardar ficheiros com extensao .c, .cpp, .h
     // TODO: verificaçao: os projetos devem conter pelo menos 1 ficheiro .c ou .cpp
     @PostMapping
     public ResponseEntity<ProjectEntity> createProject(
@@ -128,6 +128,12 @@ public class ProjectRestController {
         }
     }
 
+    // check compilation queue
+    @GetMapping("/checkQueue")
+    public List<String> checkQueue() {
+        return projectDecorator.checkQueue();
+    }
+
     @PostMapping("/compile")
     public CompletableFuture<ResponseEntity<String>> compile() {
         CompletableFuture<ResultEntity> compileFuture = projectDecorator.compileProject();
@@ -147,7 +153,6 @@ public class ProjectRestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
         });
     }
-
 
     @PostMapping("/{projectId}/run")
     public ResponseEntity<String> run(@PathVariable Long projectId) {
@@ -207,9 +212,14 @@ public class ProjectRestController {
         }
     }
 
-    @PostMapping("/{projectId}/checkStatus")
+    @GetMapping("/{projectId}/checkStatus")
     public ResponseEntity<String> checkStatus(@PathVariable Long projectId) {
-        //TODO
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("WIP");
+        BUILDSTATUS status = projectDecorator.checkStatus(projectId);
+        if (status != null) {
+            String string = "Project status: " + status.name();
+            return ResponseEntity.ok(string);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

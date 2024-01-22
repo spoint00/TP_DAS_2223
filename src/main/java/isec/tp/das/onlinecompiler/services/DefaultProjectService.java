@@ -15,7 +15,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
@@ -328,6 +331,28 @@ public class DefaultProjectService implements ProjectService {
             projectRepository.findById(projectId).ifPresent(project -> updateProjectBuildStatus(project, CANCELED));
         }
         return canceled;
+    }
+
+    @Override
+    public BUILDSTATUS checkStatus(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId).orElse(null);
+
+        if (project == null)
+            return null;
+
+        return project.getBuildStatus();
+    }
+
+    @Override
+    public List<String> checkQueue() {
+        List<ProjectEntity> projectsList = bm.getProjectsToCompile();
+        List<String> projectIds = new LinkedList<>();
+
+        for (ProjectEntity project : projectsList){
+            projectIds.add("Project Id: " + project.getId());
+        }
+
+        return projectIds;
     }
 }
 

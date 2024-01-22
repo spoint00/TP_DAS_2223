@@ -22,16 +22,20 @@ public class BuildManager {
     private BuildManager() {
     }
 
-    public static synchronized BuildManager getInstance() {
+    public static BuildManager getInstance() {
         return instance;
     }
 
-    public synchronized void addProject(ProjectEntity project) {
+    public List<ProjectEntity> getProjectsToCompile() {
+        return projectsToCompile;
+    }
+
+    public void addProject(ProjectEntity project) {
         project.setBuildStatus(IN_QUEUE);
         projectsToCompile.add(project);
     }
 
-    public synchronized ProjectEntity processNextProject() {
+    public ProjectEntity processNextProject() {
         if (!projectsToCompile.isEmpty()) {
             return projectsToCompile.removeFirst();
         }
@@ -42,7 +46,7 @@ public class BuildManager {
         projectsToCompile.remove(project);
     }
 
-    public synchronized void abortProject(ProjectEntity project) {
+    public void abortProject(ProjectEntity project) {
         project.setBuildStatus(AWAITING_QUEUE);
         projectsToCompile.remove(project);
     }
@@ -67,11 +71,6 @@ public class BuildManager {
             listener.onBuildCompleted(project, message);
         }
     }
-
-    //TODO: WIP
-//    public BUILDSTATUS getCompilationStatus(Long projectId) {
-//        return compilationThreads.get(projectId).getState();
-//    }
 
     public void addThread(Long projectId, Thread compThread) {
         compilationThreads.put(projectId, compThread);
