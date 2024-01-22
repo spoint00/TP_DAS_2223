@@ -2,8 +2,8 @@ package isec.tp.das.onlinecompiler.services;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
+import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
-import jakarta.transaction.Transactional;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,10 +16,10 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-public class DefaultProjectDecorator implements ProjectDecorator {
+public class SaveOutputProjectDecorator implements ProjectDecorator {
     private final ProjectService projectService;
 
-    public DefaultProjectDecorator(ProjectService projectService) {
+    public SaveOutputProjectDecorator(ProjectService projectService) {
         this.projectService = projectService;
     }
 
@@ -43,7 +43,6 @@ public class DefaultProjectDecorator implements ProjectDecorator {
     @Override
     public ProjectEntity getProjectById(Long projectId) {
         return projectService.getProjectById(projectId);
-
     }
 
     @Override
@@ -78,14 +77,37 @@ public class DefaultProjectDecorator implements ProjectDecorator {
 
     @Override
     @Async("asyncExecutor")
-    @Transactional
-    public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
+    public CompletableFuture<ResultEntity> compileProject() {
         return projectService.compileProject();
     }
 
     @Override
     public boolean saveConfiguration(Long projectId, boolean output) {
         return projectService.saveConfiguration(projectId, output);
+    }
+
+    public boolean addListener() {
+        return projectService.addListener();
+    }
+
+    @Override
+    public boolean removeListener(Long listenerId) {
+        return projectService.removeListener(listenerId);
+    }
+
+    @Override
+    public boolean cancelCompilation(Long projectId) {
+        return projectService.cancelCompilation(projectId);
+    }
+
+    @Override
+    public BUILDSTATUS checkStatus(Long projectId) {
+        return projectService.checkStatus(projectId);
+    }
+
+    @Override
+    public List<String> checkQueue() {
+        return projectService.checkQueue();
     }
 
     private void saveOutputToFile(String output, String projectName) {
@@ -103,15 +125,4 @@ public class DefaultProjectDecorator implements ProjectDecorator {
             e.printStackTrace();
         }
     }
-
-
-    public boolean addListener() {
-        return projectService.addListener();
-    }
-
-    @Override
-    public boolean removeListener(Long listenerId) {
-        return projectService.removeListener(listenerId);
-    }
-
 }

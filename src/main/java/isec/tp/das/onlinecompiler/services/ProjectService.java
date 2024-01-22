@@ -2,7 +2,7 @@ package isec.tp.das.onlinecompiler.services;
 
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
-import jakarta.transaction.Transactional;
+import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface ProjectService {
-    ResultEntity runProject(Long projectId) throws IOException, InterruptedException;
-
     List<ProjectEntity> getAllProjects();
 
     ProjectEntity getProjectById(Long projectId);
@@ -30,12 +28,19 @@ public interface ProjectService {
     ProjectEntity removeFromQueue(Long projectId);
 
     @Async("asyncExecutor")
-    @Transactional
-    CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException;
+    CompletableFuture<ResultEntity> compileProject();
+
+    ResultEntity runProject(Long projectId) throws IOException, InterruptedException;
 
     boolean saveConfiguration(Long projectId, boolean output);
 
     boolean addListener();
 
     boolean removeListener(Long listenerId);
+
+    boolean cancelCompilation(Long projectId);
+
+    BUILDSTATUS checkStatus(Long projectId);
+
+    List<String> checkQueue();
 }

@@ -23,14 +23,13 @@ public class ProjectEntity {
     @Column(nullable = false)
     private BUILDSTATUS buildStatus;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id")
     private List<FileEntity> codeFiles;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "result_id")
     private ResultEntity resultEntity;
-
 
     @Column(nullable = false)
     private boolean saveOutput;

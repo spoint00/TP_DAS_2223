@@ -3,6 +3,7 @@ package isec.tp.das.onlinecompiler.controllers;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.services.ProjectDecorator;
+import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,13 +14,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static java.lang.Thread.sleep;
-
 @RestController
 @RequestMapping("/projects")
 public class ProjectRestController {
 
     private final ProjectDecorator projectDecorator;
+
     @Autowired
     public ProjectRestController(ProjectDecorator projectDecorator) {
         this.projectDecorator = projectDecorator;
@@ -41,7 +41,7 @@ public class ProjectRestController {
         }
     }
 
-    // TODO: verificaçao: (no project e no file) permitir apenas guardar ficheiros com extensao .c, .cpp, .h
+    // TODO: verificaçao: permitir apenas guardar ficheiros com extensao .c, .cpp, .h
     // TODO: verificaçao: os projetos devem conter pelo menos 1 ficheiro .c ou .cpp
     @PostMapping
     public ResponseEntity<ProjectEntity> createProject(
@@ -67,7 +67,7 @@ public class ProjectRestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("files") List<MultipartFile> files) {
         try {
-            ProjectEntity project = projectDecorator.updateProject(projectId,name, description, files);
+            ProjectEntity project = projectDecorator.updateProject(projectId, name, description, files);
 
             if (project != null) {
                 return ResponseEntity.ok(project);
@@ -87,7 +87,7 @@ public class ProjectRestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "files", required = false) List<MultipartFile> files) {
         try {
-            ProjectEntity project = projectDecorator.patchProject(projectId,name, description, files);
+            ProjectEntity project = projectDecorator.patchProject(projectId, name, description, files);
             if (project != null) {
                 return ResponseEntity.ok(project);
             } else {
@@ -128,22 +128,30 @@ public class ProjectRestController {
         }
     }
 
+    // check compilation queue
+    @GetMapping("/checkQueue")
+    public List<String> checkQueue() {
+        return projectDecorator.checkQueue();
+    }
+
     @PostMapping("/compile")
-    public CompletableFuture<ResponseEntity<String>> compile() throws IOException, InterruptedException {
-        sleep(100000);
-        return projectDecorator.compileProject()
-                .thenApply(resultEntity -> {
-                    String response = resultEntity.getMessage() + "\n" + resultEntity.getOutput();
-                    if (resultEntity.isSuccess()) {
-                        return ResponseEntity.ok(response);
-                    } else {
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-                    }
-                })
-                .exceptionally(ex -> {
-                    // Handle any exceptions here
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
-                });
+    public CompletableFuture<ResponseEntity<String>> compile() {
+        CompletableFuture<ResultEntity> compileFuture = projectDecorator.compileProject();
+
+        return compileFuture.thenApply(resultEntity -> {
+            String response = resultEntity.getMessage() + "\n" + resultEntity.getOutput();
+            if (resultEntity.isSuccess()) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof InterruptedException) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Compilation canceled");
+            }
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
+        });
     }
 
     @PostMapping("/{projectId}/run")
@@ -164,7 +172,7 @@ public class ProjectRestController {
 
     //TODO apagar ficheiros do temp?
     @PostMapping("/{projectId}/saveOutput")
-    public ResponseEntity<String> saveOuput(@PathVariable Long projectId, @RequestParam boolean output) {
+    public ResponseEntity<String> saveOutput(@PathVariable Long projectId, @RequestParam boolean output) {
         boolean saveOutput = projectDecorator.saveConfiguration(projectId, output);
         if (saveOutput) {
             return ResponseEntity.status(HttpStatus.OK).body("updated with success");
@@ -179,7 +187,7 @@ public class ProjectRestController {
         if (result) {
             return ResponseEntity.status(HttpStatus.OK).body("Listener added");
         } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding listener");
         }
     }
 
@@ -189,35 +197,29 @@ public class ProjectRestController {
         if (result) {
             return ResponseEntity.status(HttpStatus.OK).body("Listener removed");
         } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error removing listener");
         }
     }
 
-    @PostMapping("/pauseBuild")
-    public ResponseEntity<String> pauseBuild() {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
-
-        //todo
+    @PostMapping("/{projectId}/cancelCompilation")
+    public ResponseEntity<String> cancelCompilation(@PathVariable Long projectId) {
+        boolean result = projectDecorator.cancelCompilation(projectId);
+        if (result) {
+            return ResponseEntity.status(HttpStatus.OK).body("Compilation canceled with success");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error canceling the compilation. Check if the compilation is in progress.");
+        }
     }
 
-    @PostMapping("/resumeBuild")
-    public ResponseEntity<String> resumeBuild() {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
-
-        //todo
+    @GetMapping("/{projectId}/checkStatus")
+    public ResponseEntity<String> checkStatus(@PathVariable Long projectId) {
+        BUILDSTATUS status = projectDecorator.checkStatus(projectId);
+        if (status != null) {
+            String string = "Project status: " + status.name();
+            return ResponseEntity.ok(string);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
-
-    @PostMapping("/cancelBuild")
-    public ResponseEntity<String> cancelBuild() {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
-
-        //todo
-    }
-
-    @PostMapping("/checkStatus")
-    public ResponseEntity<String> checkStatus() {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("nao ok");
-        //todo
-    }
-
 }

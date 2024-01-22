@@ -39,6 +39,7 @@ public class Helper {
 
             if (fileName != null){
                 if (fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h")) {
+                    //TODO: criar factory para file entity
                     FileEntity fileEntity = new FileEntity(fileName, fileContent);
                     fileEntities.add(fileEntity);
                 } else {
