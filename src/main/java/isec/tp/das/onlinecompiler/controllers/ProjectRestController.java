@@ -222,4 +222,6 @@ public class ProjectRestController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    //TODO: um endpoint para ver quais os projetos que estao a compilar?
 }
