@@ -122,51 +122,62 @@ public class DefaultProjectService implements ProjectService {
     }
 
     @Async("asyncExecutor")
-    public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
+    public CompletableFuture<ResultEntity> compileProject() {
         CompletableFuture<ResultEntity> future = new CompletableFuture<>();
-        ProjectEntity nextProject = bm.processNextProject();
 
-        // project queue is empty
-        if (nextProject == null) {
-            ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
-            bm.notifyBuildCompleted(null, result);
+        Thread compilationThread = new Thread(() -> {
+            try {
+                ProjectEntity nextProject = bm.processNextProject();
 
-            future.complete(result);
-            return future;
-        }
+                // project queue is empty
+                if (nextProject == null) {
+                    ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
+                    bm.notifyBuildCompleted(null, result);
 
-        Long nextProjectID = nextProject.getId();
-        ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
+                    future.complete(result);
+                    return;
+                }
 
-        // project not found
-        if (project == null) {
-            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
-            bm.notifyBuildCompleted(null, result);
+                Long nextProjectID = nextProject.getId();
+                ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
 
-            future.complete(result);
-        } else {
-            // project not in queue
-            if (project.getBuildStatus() != IN_QUEUE) {
-                ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
-                bm.notifyBuildCompleted(project, result);
+                // project not found
+                if (project == null) {
+                    ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+                    bm.notifyBuildCompleted(null, result);
 
-                future.complete(result);
-                return future;
+                    future.complete(result);
+                } else {
+                    // project not in queue
+                    if (project.getBuildStatus() != IN_QUEUE) {
+                        ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                        bm.notifyBuildCompleted(project, result);
+
+                        future.complete(result);
+                        return;
+                    }
+
+                    updateProjectBuildStatus(project, COMPILATION_IN_PROGRESS);
+                    bm.addThread(project.getId(), Thread.currentThread());
+
+                    // only for TESTING
+                    Thread.sleep(8000);
+                    ResultEntity result = startCompilation(project);
+
+                    future.complete(result);
+                    compilationFinished(project, result);
+                }
+            } catch (IOException | InterruptedException e) {
+                future.completeExceptionally(e);
             }
+        });
 
-            updateProjectBuildStatus(project, COMPILATION_IN_PROGRESS);
-            bm.addCompileFuture(project.getId(), future);
+        compilationThread.start();
 
-            ResultEntity result = startCompilation(project);
-            // only for TESTING
-            Thread.sleep(8000);
-
-            future.complete(result);
-            //TODO: bug: ao cancelar a compilation o listener continua a mandar uma mensagem de compilation successful
-            compilationFinished(project, result);
-        }
+        // return completable future reference after starting the thread
         return future;
     }
+
 
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         String projectName = project.getName().replace(" ", "_");
@@ -210,7 +221,7 @@ public class DefaultProjectService implements ProjectService {
 
     private void compilationFinished(ProjectEntity project, ResultEntity result) {
         bm.compilationCompleted(project);
-        bm.removeCompileFuture(project.getId());
+        bm.removeThread(project.getId());
         bm.notifyBuildCompleted(project, result);
     }
 

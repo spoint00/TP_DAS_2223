@@ -17,7 +17,7 @@ public class BuildManager {
     private static final BuildManager instance = new BuildManager();
     private final List<ProjectEntity> projectsToCompile = new LinkedList<>();
     private final List<BuildListener> listeners = new ArrayList<>();
-    private final Map<Long, CompletableFuture<ResultEntity>> compileFutures = new ConcurrentHashMap<>();
+    private final Map<Long, Thread> compilationThreads = new ConcurrentHashMap<>();
 
     private BuildManager() {
     }
@@ -68,23 +68,25 @@ public class BuildManager {
         }
     }
 
-    public CompletableFuture<ResultEntity> getCompilationFuture(Long projectId) {
-        return compileFutures.get(projectId);
+    //TODO: WIP
+//    public BUILDSTATUS getCompilationStatus(Long projectId) {
+//        return compilationThreads.get(projectId).getState();
+//    }
+
+    public void addThread(Long projectId, Thread compThread) {
+        compilationThreads.put(projectId, compThread);
     }
 
-    public void addCompileFuture(Long projectId, CompletableFuture<ResultEntity> future) {
-        compileFutures.put(projectId, future);
-    }
-
-    public void removeCompileFuture(Long projectId) {
-        compileFutures.remove(projectId);
+    public void removeThread(Long projectId) {
+        compilationThreads.remove(projectId);
     }
 
     public boolean cancelCompilation(Long projectId) {
-        CompletableFuture<ResultEntity> future = compileFutures.get(projectId);
+        Thread compThread = compilationThreads.get(projectId);
 
-        if (future != null && !future.isDone()) {
-            return future.cancel(true);
+        if (compThread != null && compThread.isAlive()) {
+            compThread.interrupt();
+            return true;
         }
         return false;
     }

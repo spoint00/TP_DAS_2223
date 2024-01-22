@@ -3,7 +3,6 @@ package isec.tp.das.onlinecompiler.services;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 import isec.tp.das.onlinecompiler.util.Helper;
-
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,7 +42,6 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
     @Override
     public ProjectEntity getProjectById(Long projectId) {
         return projectService.getProjectById(projectId);
-
     }
 
     @Override
@@ -78,7 +76,7 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
 
     @Override
     @Async("asyncExecutor")
-    public CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException {
+    public CompletableFuture<ResultEntity> compileProject() {
         return projectService.compileProject();
     }
 

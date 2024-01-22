@@ -130,15 +130,9 @@ public class ProjectRestController {
 
     @PostMapping("/compile")
     public CompletableFuture<ResponseEntity<String>> compile() {
-        CompletableFuture<ResultEntity> completableFuture;
-        try {
-            completableFuture = projectDecorator.compileProject();
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + e.getMessage()));
-        }
+        CompletableFuture<ResultEntity> compileFuture = projectDecorator.compileProject();
 
-        return completableFuture.thenApply(resultEntity -> {
+        return compileFuture.thenApply(resultEntity -> {
             String response = resultEntity.getMessage() + "\n" + resultEntity.getOutput();
             if (resultEntity.isSuccess()) {
                 return ResponseEntity.ok(response);
@@ -146,12 +140,14 @@ public class ProjectRestController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
         }).exceptionally(ex -> {
-            if (ex.getCause() instanceof CancellationException) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Compilation canceled by user");
-            } else
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
+            if (ex.getCause() instanceof InterruptedException) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Compilation canceled");
+            }
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during compilation: " + ex.getMessage());
         });
     }
+
 
     @PostMapping("/{projectId}/run")
     public ResponseEntity<String> run(@PathVariable Long projectId) {
@@ -171,7 +167,7 @@ public class ProjectRestController {
 
     //TODO apagar ficheiros do temp?
     @PostMapping("/{projectId}/saveOutput")
-    public ResponseEntity<String> saveOuput(@PathVariable Long projectId, @RequestParam boolean output) {
+    public ResponseEntity<String> saveOutput(@PathVariable Long projectId, @RequestParam boolean output) {
         boolean saveOutput = projectDecorator.saveConfiguration(projectId, output);
         if (saveOutput) {
             return ResponseEntity.status(HttpStatus.OK).body("updated with success");

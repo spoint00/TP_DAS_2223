@@ -27,7 +27,7 @@ public interface ProjectService {
     ProjectEntity removeFromQueue(Long projectId);
 
     @Async("asyncExecutor")
-    CompletableFuture<ResultEntity> compileProject() throws IOException, InterruptedException;
+    CompletableFuture<ResultEntity> compileProject();
 
     ResultEntity runProject(Long projectId) throws IOException, InterruptedException;
 
