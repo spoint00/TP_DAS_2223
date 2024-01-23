@@ -110,6 +110,11 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
         return projectService.checkQueue();
     }
 
+    @Override
+    public List<String> listCompiling() {
+        return projectService.listCompiling();
+    }
+
     private void saveOutputToFile(String output, String projectName) {
         String pName = projectName.replace(" ", "_");
         String filename = pName + ".txt";

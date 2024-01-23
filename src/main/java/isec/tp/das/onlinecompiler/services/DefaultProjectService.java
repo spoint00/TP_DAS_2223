@@ -15,10 +15,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
@@ -354,6 +351,20 @@ public class DefaultProjectService implements ProjectService {
 
         return projectIds;
     }
+
+    @Override
+    public List<String> listCompiling() {
+        Map<Long, Thread> projectsList = bm.getCompilationThreads();
+        List<String> projectIds = new LinkedList<>();
+        Long[] idSet = projectsList.keySet().toArray(new Long[0]);
+        for (Long id : idSet){
+            projectIds.add("Project Id: " + id);
+        }
+
+        return projectIds;
+    }
+
+
 }
 
 

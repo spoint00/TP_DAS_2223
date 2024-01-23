@@ -223,5 +223,8 @@ public class ProjectRestController {
         }
     }
 
-    //TODO: um endpoint para ver quais os projetos que estao a compilar?
+    @GetMapping("/listCompiling")
+    public List<String> listCompiling() {
+       return projectDecorator.listCompiling();
+    }
 }

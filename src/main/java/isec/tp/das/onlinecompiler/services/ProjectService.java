@@ -43,4 +43,6 @@ public interface ProjectService {
     BUILDSTATUS checkStatus(Long projectId);
 
     List<String> checkQueue();
+
+    List<String> listCompiling();
 }
