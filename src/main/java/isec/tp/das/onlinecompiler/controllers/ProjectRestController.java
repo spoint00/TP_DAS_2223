@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/projects")
@@ -136,7 +137,7 @@ public class ProjectRestController {
 
     @PostMapping("/compile")
     public CompletableFuture<ResponseEntity<String>> compile() {
-        CompletableFuture<ResultEntity> compileFuture = projectDecorator.compileProject();
+        CompletableFuture<ResultEntity> compileFuture = projectDecorator.compileProject(false);
 
         return compileFuture.thenApply(resultEntity -> {
             String response = resultEntity.getMessage() + "\n" + resultEntity.getOutput();
@@ -226,5 +227,18 @@ public class ProjectRestController {
     @GetMapping("/listCompiling")
     public List<String> listCompiling() {
        return projectDecorator.listCompiling();
+    }
+
+    @PostMapping("/{projectId}/scheduleBuild")
+    public ResponseEntity<String> scheduleBuild(@PathVariable Long projectId,
+                                @RequestParam long initialDelay,
+                                @RequestParam long period,
+                                @RequestParam TimeUnit unit) {
+        try {
+            projectDecorator.scheduleBuild(projectId, initialDelay, period, unit);
+            return ResponseEntity.ok("Build scheduled successfully for project ID " + projectId);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error scheduling build: " + e.getMessage());
+        }
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public interface ProjectService {
     List<ProjectEntity> getAllProjects();
@@ -28,7 +29,7 @@ public interface ProjectService {
     ProjectEntity removeFromQueue(Long projectId);
 
     @Async("asyncExecutor")
-    CompletableFuture<ResultEntity> compileProject();
+    CompletableFuture<ResultEntity> compileProject(boolean flag);
 
     ResultEntity runProject(Long projectId) throws IOException, InterruptedException;
 
@@ -45,4 +46,7 @@ public interface ProjectService {
     List<String> checkQueue();
 
     List<String> listCompiling();
+
+    void scheduleBuild(Long projectId, long initialDelay, long period, TimeUnit unit);
+
 }

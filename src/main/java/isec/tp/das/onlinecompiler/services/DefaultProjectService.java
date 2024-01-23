@@ -8,6 +8,7 @@ import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
+import jakarta.annotation.PreDestroy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,8 +18,12 @@ import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
+import static java.lang.Thread.sleep;
 
 public class DefaultProjectService implements ProjectService {
     private final ProjectRepository projectRepository;
@@ -26,6 +31,9 @@ public class DefaultProjectService implements ProjectService {
     private final ProjectEntityFactory projectFactory;
     private final ResultEntityFactory resultFactory;
     private final BuildManager bm;
+
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
 
     public DefaultProjectService(ProjectRepository projectRepository,
                                  ProjectEntityFactory projectFactory,
@@ -121,51 +129,51 @@ public class DefaultProjectService implements ProjectService {
         }
     }
 
+    public ResultEntity checkProject(ProjectEntity nextProject){
+        Long nextProjectID = nextProject.getId();
+        ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
+
+        // project not found
+        if (project == null) {
+            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+            bm.notifyBuildCompleted(null, result);
+            return result;
+        }
+        return null;
+    }
+
     @Async("asyncExecutor")
-    public CompletableFuture<ResultEntity> compileProject() {
+    public CompletableFuture<ResultEntity> compileProject(boolean flag) {
         CompletableFuture<ResultEntity> future = new CompletableFuture<>();
 
         Thread compilationThread = new Thread(() -> {
             try {
                 ProjectEntity nextProject = bm.processNextProject();
-
-                // project queue is empty
-                if (nextProject == null) {
-                    ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
-                    bm.notifyBuildCompleted(null, result);
-
-                    future.complete(result);
-                    return;
-                }
-
-                Long nextProjectID = nextProject.getId();
-                ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
-
-                // project not found
-                if (project == null) {
-                    ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
-                    bm.notifyBuildCompleted(null, result);
-
+                ResultEntity result = checkProject(nextProject);
+                if(result !=null){
                     future.complete(result);
                 } else {
                     // project not in queue
-                    if (project.getBuildStatus() != IN_QUEUE) {
-                        ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
-                        bm.notifyBuildCompleted(project, result);
+                    if(!flag){  //flag = true vem do schedule
+                        // project queue is empty
+                        if (nextProject.getBuildStatus() != IN_QUEUE) {
+                            result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                            bm.notifyBuildCompleted(nextProject, result);
 
-                        future.complete(result);
-                        return;
+                            future.complete(result);
+                            return;
+                        }
+
                     }
-
-                    updateProjectBuildStatus(project, COMPILATION_IN_PROGRESS);
-                    bm.addThread(project.getId(), Thread.currentThread());
+                    updateProjectBuildStatus(nextProject, COMPILATION_IN_PROGRESS);
+                    bm.addThread(nextProject.getId(), Thread.currentThread());
 
                     // only for TESTING
-                    Thread.sleep(8000);
-                    ResultEntity result = startCompilation(project);
+                    sleep(2000);
+                    result = startCompilation(nextProject);
 
                     future.complete(result);
-                    compilationFinished(project, result);
+                    compilationFinished(nextProject, result);
                 }
             } catch (IOException | InterruptedException e) {
                 future.completeExceptionally(e);
@@ -364,7 +372,34 @@ public class DefaultProjectService implements ProjectService {
         return projectIds;
     }
 
+    @Async
+    public void scheduleBuild(Long projectId, long initialDelay, long period, TimeUnit unit){
+        ProjectEntity project = getProjectById(projectId);
+        checkProject(project);
+        boolean flag = true;
+        Runnable buildTask = () -> {
+            try {
+                addToQueue(projectId);
+                compileProject(flag);
+            } catch (Exception e) {
+                System.err.println("Error in compileProject for project ID " + projectId + ": " + e.getMessage());
+            }
+        };
+        scheduler.schedule(buildTask, initialDelay, unit);
+        System.out.println("Scheduled a build for project ID " + projectId + " to start after " + initialDelay + " " + unit.toString().toLowerCase());
+    }
 
+    @PreDestroy
+    public void shutDown() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+        }
+    }
 }
 
 
