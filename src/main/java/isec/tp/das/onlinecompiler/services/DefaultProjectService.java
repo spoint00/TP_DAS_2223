@@ -100,7 +100,7 @@ public class DefaultProjectService implements ProjectService {
 
     public boolean deleteProject(Long projectId) {
         if (projectRepository.existsById(projectId)) {
-            // (talvez?) ao fazer delete do projeto pode ser necessario mexer na lista do build manager
+            // todo: (talvez?) ao fazer delete do projeto pode ser necessario mexer na lista do build manager
             projectRepository.deleteById(projectId);
             return true;
         } else {
@@ -130,30 +130,14 @@ public class DefaultProjectService implements ProjectService {
         }
     }
 
-//    public ResultEntity checkProject(ProjectEntity nextProject) {
-//        Long nextProjectID = nextProject.getId();
-//        ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
-//
-//        // project not found
-//        if (project == null) {
-//            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
-//            bm.notifyBuildCompleted(null, result);
-//            return result;
-//        }
-//        return null;
-//    }
-
     @Async("asyncExecutor")
     public CompletableFuture<ResultEntity> compileProject(Long projectId, boolean checkQueue) {
         CompletableFuture<ResultEntity> future = new CompletableFuture<>();
-
         Thread compilationThread = new Thread(() -> {
             try {
                 ProjectEntity project;
-
                 if (checkQueue) {
                     project = bm.processNextProject();
-
                     // queue is empty
                     if (project == null) {
                         ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
@@ -188,7 +172,7 @@ public class DefaultProjectService implements ProjectService {
                     bm.addThread(project.getId(), Thread.currentThread());
 
                     // only for TESTING
-                    Thread.sleep(3000);
+                    //Thread.sleep(3000);
                     ResultEntity result = startCompilation(project);
 
                     future.complete(result);
@@ -198,13 +182,10 @@ public class DefaultProjectService implements ProjectService {
                 future.completeExceptionally(e);
             }
         });
-
         compilationThread.start();
-
         // return completable future reference after starting the thread
         return future;
     }
-
 
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         String projectName = project.getName().replace(" ", "_");
@@ -252,6 +233,25 @@ public class DefaultProjectService implements ProjectService {
         bm.notifyBuildCompleted(project, result);
     }
 
+    // update status and save in the db
+    private void updateProjectBuildStatus(ProjectEntity project, BUILDSTATUS buildstatus) {
+        project.setBuildStatus(buildstatus);
+        projectRepository.save(project);
+    }
+
+    // update project result and save in the db
+    private ResultEntity updateProjectResult(ProjectEntity project, boolean success, String message, String output) {
+        ResultEntity result = project.getResultEntity();
+
+        result.setSuccess(success);
+        result.setMessage(message);
+        result.setOutput(output);
+
+        projectRepository.save(project);
+
+        return result;
+    }
+
     @Override
     public ResultEntity runProject(Long projectId) throws IOException, InterruptedException {
         ProjectEntity project = projectRepository.findById(projectId).orElse(null);
@@ -293,25 +293,6 @@ public class DefaultProjectService implements ProjectService {
 
             return updateProjectResult(project, false, failureMessage, output);
         }
-    }
-
-    // update status and save in the db
-    private void updateProjectBuildStatus(ProjectEntity project, BUILDSTATUS buildstatus) {
-        project.setBuildStatus(buildstatus);
-        projectRepository.save(project);
-    }
-
-    // update project result and save in the db
-    private ResultEntity updateProjectResult(ProjectEntity project, boolean success, String message, String output) {
-        ResultEntity result = project.getResultEntity();
-
-        result.setSuccess(success);
-        result.setMessage(message);
-        result.setOutput(output);
-
-        projectRepository.save(project);
-
-        return result;
     }
 
     // read the output from the process
