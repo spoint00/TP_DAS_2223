@@ -14,7 +14,7 @@ import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.IN_QUEUE;
 
 public class BuildManager {
     private static final BuildManager instance = new BuildManager();
-    private final List<ProjectEntity> projectsToCompile = new LinkedList<>();
+    private final List<ProjectEntity> projectQueue = new LinkedList<>();
     private final List<BuildListener> listeners = new ArrayList<>();
     private final Map<Long, Thread> compilationThreads = new ConcurrentHashMap<>();
 
@@ -25,29 +25,29 @@ public class BuildManager {
         return instance;
     }
 
-    public List<ProjectEntity> getProjectsToCompile() {
-        return projectsToCompile;
+    public List<ProjectEntity> getProjectQueue() {
+        return projectQueue;
     }
 
     public void addProject(ProjectEntity project) {
         project.setBuildStatus(IN_QUEUE);
-        projectsToCompile.add(project);
+        projectQueue.add(project);
     }
 
     public ProjectEntity processNextProject() {
-        if (!projectsToCompile.isEmpty()) {
-            return projectsToCompile.removeFirst();
+        if (!projectQueue.isEmpty()) {
+            return projectQueue.removeFirst();
         }
         return null;
     }
 
     public void compilationCompleted(ProjectEntity project) {
-        projectsToCompile.remove(project);
+        projectQueue.remove(project);
     }
 
     public void abortProject(ProjectEntity project) {
         project.setBuildStatus(AWAITING_QUEUE);
-        projectsToCompile.remove(project);
+        projectQueue.remove(project);
     }
 
     public boolean addBuildListener(BuildListener listener) {

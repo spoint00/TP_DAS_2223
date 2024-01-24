@@ -16,14 +16,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
-import static java.lang.Thread.sleep;
 
 public class DefaultProjectService implements ProjectService {
     private final ProjectRepository projectRepository;
@@ -129,51 +130,69 @@ public class DefaultProjectService implements ProjectService {
         }
     }
 
-    public ResultEntity checkProject(ProjectEntity nextProject){
-        Long nextProjectID = nextProject.getId();
-        ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
-
-        // project not found
-        if (project == null) {
-            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
-            bm.notifyBuildCompleted(null, result);
-            return result;
-        }
-        return null;
-    }
+//    public ResultEntity checkProject(ProjectEntity nextProject) {
+//        Long nextProjectID = nextProject.getId();
+//        ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
+//
+//        // project not found
+//        if (project == null) {
+//            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+//            bm.notifyBuildCompleted(null, result);
+//            return result;
+//        }
+//        return null;
+//    }
 
     @Async("asyncExecutor")
-    public CompletableFuture<ResultEntity> compileProject(boolean flag) {
+    public CompletableFuture<ResultEntity> compileProject(Long projectId, boolean checkQueue) {
         CompletableFuture<ResultEntity> future = new CompletableFuture<>();
 
         Thread compilationThread = new Thread(() -> {
             try {
-                ProjectEntity nextProject = bm.processNextProject();
-                ResultEntity result = checkProject(nextProject);
-                if(result !=null){
+                ProjectEntity project;
+
+                if (checkQueue) {
+                    project = bm.processNextProject();
+
+                    // queue is empty
+                    if (project == null) {
+                        ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
+                        bm.notifyBuildCompleted(null, result);
+
+                        future.complete(result);
+                        return;
+                    }
+                } else {
+                    project = projectRepository.findById(projectId).orElse(null);
+                }
+
+                // project not found
+                if (project == null) {
+                    ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotFound, Helper.noOutput);
+                    bm.notifyBuildCompleted(null, result);
+
                     future.complete(result);
                 } else {
-                    // project not in queue
-                    if(!flag){  //flag = true vem do schedule
-                        // project queue is empty
-                        if (nextProject.getBuildStatus() != IN_QUEUE) {
-                            result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
-                            bm.notifyBuildCompleted(nextProject, result);
+                    if (checkQueue) {
+                        // project not in queue
+                        if (project.getBuildStatus() != IN_QUEUE) {
+                            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                            bm.notifyBuildCompleted(project, result);
 
                             future.complete(result);
                             return;
                         }
-
                     }
-                    updateProjectBuildStatus(nextProject, COMPILATION_IN_PROGRESS);
-                    bm.addThread(nextProject.getId(), Thread.currentThread());
+
+                    updateProjectBuildStatus(project, COMPILATION_IN_PROGRESS);
+                    bm.addThread(project.getId(), Thread.currentThread());
 
                     // only for TESTING
-                    sleep(2000);
-                    result = startCompilation(nextProject);
+                    Thread.sleep(3000);
+                    ResultEntity result = startCompilation(project);
 
                     future.complete(result);
-                    compilationFinished(nextProject, result);
+                    compilationFinished(project, result);
                 }
             } catch (IOException | InterruptedException e) {
                 future.completeExceptionally(e);
@@ -350,10 +369,10 @@ public class DefaultProjectService implements ProjectService {
 
     @Override
     public List<String> checkQueue() {
-        List<ProjectEntity> projectsList = bm.getProjectsToCompile();
+        List<ProjectEntity> projectsList = bm.getProjectQueue();
         List<String> projectIds = new LinkedList<>();
 
-        for (ProjectEntity project : projectsList){
+        for (ProjectEntity project : projectsList) {
             projectIds.add("Project Id: " + project.getId());
         }
 
@@ -364,23 +383,19 @@ public class DefaultProjectService implements ProjectService {
     public List<String> listCompiling() {
         Map<Long, Thread> projectsList = bm.getCompilationThreads();
         List<String> projectIds = new LinkedList<>();
-        Long[] idSet = projectsList.keySet().toArray(new Long[0]);
-        for (Long id : idSet){
+        Long[] ids = projectsList.keySet().toArray(new Long[0]);
+        for (Long id : ids) {
             projectIds.add("Project Id: " + id);
         }
 
         return projectIds;
     }
 
-    @Async
-    public void scheduleBuild(Long projectId, long initialDelay, long period, TimeUnit unit){
-        ProjectEntity project = getProjectById(projectId);
-        checkProject(project);
-        boolean flag = true;
+    @Async("asyncExecutor")
+    public void scheduleBuild(Long projectId, long initialDelay, TimeUnit unit) {
         Runnable buildTask = () -> {
             try {
-                addToQueue(projectId);
-                compileProject(flag);
+                compileProject(projectId, false);
             } catch (Exception e) {
                 System.err.println("Error in compileProject for project ID " + projectId + ": " + e.getMessage());
             }

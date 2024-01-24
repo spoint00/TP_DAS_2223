@@ -78,8 +78,8 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
 
     @Override
     @Async("asyncExecutor")
-    public CompletableFuture<ResultEntity> compileProject(boolean flag) {
-        return projectService.compileProject(flag);
+    public CompletableFuture<ResultEntity> compileProject(Long projectId, boolean checkQueue) {
+        return projectService.compileProject(projectId, checkQueue);
     }
 
     @Override
@@ -117,8 +117,8 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
     }
 
     @Override
-    public void scheduleBuild(Long projectId, long initialDelay, long period, TimeUnit unit) {
-        projectService.scheduleBuild(projectId, initialDelay, period, unit);
+    public void scheduleBuild(Long projectId, long initialDelay, TimeUnit unit) {
+        projectService.scheduleBuild(projectId, initialDelay, unit);
     }
 
 

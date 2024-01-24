@@ -29,7 +29,7 @@ public interface ProjectService {
     ProjectEntity removeFromQueue(Long projectId);
 
     @Async("asyncExecutor")
-    CompletableFuture<ResultEntity> compileProject(boolean flag);
+    CompletableFuture<ResultEntity> compileProject(Long projectId, boolean checkQueue);
 
     ResultEntity runProject(Long projectId) throws IOException, InterruptedException;
 
@@ -47,6 +47,6 @@ public interface ProjectService {
 
     List<String> listCompiling();
 
-    void scheduleBuild(Long projectId, long initialDelay, long period, TimeUnit unit);
+    void scheduleBuild(Long projectId, long initialDelay, TimeUnit unit);
 
 }
