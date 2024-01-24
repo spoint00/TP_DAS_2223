@@ -1,6 +1,7 @@
 package isec.tp.das.onlinecompiler.util;
 
 import isec.tp.das.onlinecompiler.models.FileEntity;
+import org.springframework.util.FileSystemUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -90,5 +91,10 @@ public class Helper {
                     .map(Path::toFile)
                     .forEach(File::delete);
         }
+    }
+
+    // delete Temp folder and all files
+    public static void deleteTempFolder() {
+        FileSystemUtils.deleteRecursively(tempPath.toFile());
     }
 }

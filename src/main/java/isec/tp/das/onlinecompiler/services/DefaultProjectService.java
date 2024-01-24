@@ -210,19 +210,15 @@ public class DefaultProjectService implements ProjectService {
         if (output.isBlank())
             output = Helper.noOutput;
 
+        Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
+
         if (exitCode == 0) {
             String successMessage = "Compilation successful.";
-
             updateProjectBuildStatus(project, SUCCESS_BUILD);
-            Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
-
             return updateProjectResult(project, true, successMessage, output);
         } else {
             String failureMessage = "Compilation failed. Exit code: " + exitCode;
-
             updateProjectBuildStatus(project, FAILURE_BUILD);
-            Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
-
             return updateProjectResult(project, false, failureMessage, output);
         }
     }
@@ -388,8 +384,9 @@ public class DefaultProjectService implements ProjectService {
     @PreDestroy
     public void shutDown() {
         scheduler.shutdown();
+        Helper.deleteTempFolder();
         try {
-            if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
+            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
         } catch (InterruptedException e) {
