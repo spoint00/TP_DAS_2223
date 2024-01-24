@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/projects")
@@ -136,7 +137,7 @@ public class ProjectRestController {
 
     @PostMapping("/compile")
     public CompletableFuture<ResponseEntity<String>> compile() {
-        CompletableFuture<ResultEntity> compileFuture = projectDecorator.compileProject();
+        CompletableFuture<ResultEntity> compileFuture = projectDecorator.compileProject(null, true);
 
         return compileFuture.thenApply(resultEntity -> {
             String response = resultEntity.getMessage() + "\n" + resultEntity.getOutput();
@@ -170,7 +171,6 @@ public class ProjectRestController {
         }
     }
 
-    //TODO apagar ficheiros do temp?
     @PostMapping("/{projectId}/saveOutput")
     public ResponseEntity<String> saveOutput(@PathVariable Long projectId, @RequestParam boolean output) {
         boolean saveOutput = projectDecorator.saveConfiguration(projectId, output);
@@ -216,7 +216,7 @@ public class ProjectRestController {
     public ResponseEntity<String> checkStatus(@PathVariable Long projectId) {
         BUILDSTATUS status = projectDecorator.checkStatus(projectId);
         if (status != null) {
-            String string = "Project status: " + status.name();
+            String string = "Project status: " + status.name().toLowerCase();
             return ResponseEntity.ok(string);
         } else {
             return ResponseEntity.notFound().build();
@@ -226,5 +226,17 @@ public class ProjectRestController {
     @GetMapping("/listCompiling")
     public List<String> listCompiling() {
        return projectDecorator.listCompiling();
+    }
+
+    @PostMapping("/{projectId}/scheduleBuild")
+    public ResponseEntity<String> scheduleBuild(@PathVariable Long projectId,
+                                @RequestParam long initialDelay,
+                                @RequestParam TimeUnit unit) {
+        try {
+            projectDecorator.scheduleBuild(projectId, initialDelay, unit);
+            return ResponseEntity.ok("Build scheduled successfully for project ID " + projectId);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error scheduling build: " + e.getMessage());
+        }
     }
 }

@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SaveOutputProjectDecorator implements ProjectDecorator {
@@ -77,8 +78,8 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
 
     @Override
     @Async("asyncExecutor")
-    public CompletableFuture<ResultEntity> compileProject() {
-        return projectService.compileProject();
+    public CompletableFuture<ResultEntity> compileProject(Long projectId, boolean checkQueue) {
+        return projectService.compileProject(projectId, checkQueue);
     }
 
     @Override
@@ -114,6 +115,12 @@ public class SaveOutputProjectDecorator implements ProjectDecorator {
     public List<String> listCompiling() {
         return projectService.listCompiling();
     }
+
+    @Override
+    public void scheduleBuild(Long projectId, long initialDelay, TimeUnit unit) {
+        projectService.scheduleBuild(projectId, initialDelay, unit);
+    }
+
 
     private void saveOutputToFile(String output, String projectName) {
         String pName = projectName.replace(" ", "_");

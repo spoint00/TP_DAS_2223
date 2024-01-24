@@ -1,6 +1,9 @@
 package isec.tp.das.onlinecompiler.util;
 
 import isec.tp.das.onlinecompiler.models.FileEntity;
+import isec.tp.das.onlinecompiler.services.factories.ConcreteFileEntityFactory;
+import isec.tp.das.onlinecompiler.services.factories.FileEntityFactory;
+import org.springframework.util.FileSystemUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -22,9 +25,9 @@ public class Helper {
     public static String noFilesToCompile = "No source files to compile";
     public static String projectNotCompiled = "Compile project successfully before running";
     public static String queueIsEmpty = "Project queue is empty";
-
     public static Path tempPath = Paths.get("./temp");
 
+    private static final FileEntityFactory fileEntityFactory = new ConcreteFileEntityFactory();
 
     private Helper() {
     }
@@ -39,8 +42,7 @@ public class Helper {
 
             if (fileName != null){
                 if (fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h")) {
-                    //TODO: criar factory para file entity
-                    FileEntity fileEntity = new FileEntity(fileName, fileContent);
+                    FileEntity fileEntity = fileEntityFactory.createFileEntity(fileName, fileContent);
                     fileEntities.add(fileEntity);
                 } else {
                     // You can either throw an exception or handle it based on your application's needs
@@ -90,5 +92,10 @@ public class Helper {
                     .map(Path::toFile)
                     .forEach(File::delete);
         }
+    }
+
+    // delete Temp folder and all files
+    public static void deleteTempFolder() {
+        FileSystemUtils.deleteRecursively(tempPath.toFile());
     }
 }

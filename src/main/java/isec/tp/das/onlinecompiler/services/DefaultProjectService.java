@@ -8,6 +8,7 @@ import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
+import jakarta.annotation.PreDestroy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,8 +16,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.*;
 
@@ -26,6 +32,9 @@ public class DefaultProjectService implements ProjectService {
     private final ProjectEntityFactory projectFactory;
     private final ResultEntityFactory resultFactory;
     private final BuildManager bm;
+
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
 
     public DefaultProjectService(ProjectRepository projectRepository,
                                  ProjectEntityFactory projectFactory,
@@ -91,7 +100,7 @@ public class DefaultProjectService implements ProjectService {
 
     public boolean deleteProject(Long projectId) {
         if (projectRepository.existsById(projectId)) {
-            // (talvez?) ao fazer delete do projeto pode ser necessario mexer na lista do build manager
+            // todo: (talvez?) ao fazer delete do projeto pode ser necessario mexer na lista do build manager
             projectRepository.deleteById(projectId);
             return true;
         } else {
@@ -122,24 +131,24 @@ public class DefaultProjectService implements ProjectService {
     }
 
     @Async("asyncExecutor")
-    public CompletableFuture<ResultEntity> compileProject() {
+    public CompletableFuture<ResultEntity> compileProject(Long projectId, boolean checkQueue) {
         CompletableFuture<ResultEntity> future = new CompletableFuture<>();
-
         Thread compilationThread = new Thread(() -> {
             try {
-                ProjectEntity nextProject = bm.processNextProject();
+                ProjectEntity project;
+                if (checkQueue) {
+                    project = bm.processNextProject();
+                    // queue is empty
+                    if (project == null) {
+                        ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
+                        bm.notifyBuildCompleted(null, result);
 
-                // project queue is empty
-                if (nextProject == null) {
-                    ResultEntity result = resultFactory.createResultEntity(false, Helper.queueIsEmpty, Helper.noOutput);
-                    bm.notifyBuildCompleted(null, result);
-
-                    future.complete(result);
-                    return;
+                        future.complete(result);
+                        return;
+                    }
+                } else {
+                    project = projectRepository.findById(projectId).orElse(null);
                 }
-
-                Long nextProjectID = nextProject.getId();
-                ProjectEntity project = projectRepository.findById(nextProjectID).orElse(null);
 
                 // project not found
                 if (project == null) {
@@ -148,20 +157,22 @@ public class DefaultProjectService implements ProjectService {
 
                     future.complete(result);
                 } else {
-                    // project not in queue
-                    if (project.getBuildStatus() != IN_QUEUE) {
-                        ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
-                        bm.notifyBuildCompleted(project, result);
+                    if (checkQueue) {
+                        // project not in queue
+                        if (project.getBuildStatus() != IN_QUEUE) {
+                            ResultEntity result = resultFactory.createResultEntity(false, Helper.projectNotInQueue, Helper.noOutput);
+                            bm.notifyBuildCompleted(project, result);
 
-                        future.complete(result);
-                        return;
+                            future.complete(result);
+                            return;
+                        }
                     }
 
                     updateProjectBuildStatus(project, COMPILATION_IN_PROGRESS);
                     bm.addThread(project.getId(), Thread.currentThread());
 
                     // only for TESTING
-                    Thread.sleep(8000);
+                    //Thread.sleep(3000);
                     ResultEntity result = startCompilation(project);
 
                     future.complete(result);
@@ -171,13 +182,10 @@ public class DefaultProjectService implements ProjectService {
                 future.completeExceptionally(e);
             }
         });
-
         compilationThread.start();
-
         // return completable future reference after starting the thread
         return future;
     }
-
 
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         String projectName = project.getName().replace(" ", "_");
@@ -202,19 +210,15 @@ public class DefaultProjectService implements ProjectService {
         if (output.isBlank())
             output = Helper.noOutput;
 
+        Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
+
         if (exitCode == 0) {
             String successMessage = "Compilation successful.";
-
             updateProjectBuildStatus(project, SUCCESS_BUILD);
-            Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
-
             return updateProjectResult(project, true, successMessage, output);
         } else {
             String failureMessage = "Compilation failed. Exit code: " + exitCode;
-
             updateProjectBuildStatus(project, FAILURE_BUILD);
-            Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
-
             return updateProjectResult(project, false, failureMessage, output);
         }
     }
@@ -223,6 +227,25 @@ public class DefaultProjectService implements ProjectService {
         bm.compilationCompleted(project);
         bm.removeThread(project.getId());
         bm.notifyBuildCompleted(project, result);
+    }
+
+    // update status and save in the db
+    private void updateProjectBuildStatus(ProjectEntity project, BUILDSTATUS buildstatus) {
+        project.setBuildStatus(buildstatus);
+        projectRepository.save(project);
+    }
+
+    // update project result and save in the db
+    private ResultEntity updateProjectResult(ProjectEntity project, boolean success, String message, String output) {
+        ResultEntity result = project.getResultEntity();
+
+        result.setSuccess(success);
+        result.setMessage(message);
+        result.setOutput(output);
+
+        projectRepository.save(project);
+
+        return result;
     }
 
     @Override
@@ -266,25 +289,6 @@ public class DefaultProjectService implements ProjectService {
 
             return updateProjectResult(project, false, failureMessage, output);
         }
-    }
-
-    // update status and save in the db
-    private void updateProjectBuildStatus(ProjectEntity project, BUILDSTATUS buildstatus) {
-        project.setBuildStatus(buildstatus);
-        projectRepository.save(project);
-    }
-
-    // update project result and save in the db
-    private ResultEntity updateProjectResult(ProjectEntity project, boolean success, String message, String output) {
-        ResultEntity result = project.getResultEntity();
-
-        result.setSuccess(success);
-        result.setMessage(message);
-        result.setOutput(output);
-
-        projectRepository.save(project);
-
-        return result;
     }
 
     // read the output from the process
@@ -342,10 +346,10 @@ public class DefaultProjectService implements ProjectService {
 
     @Override
     public List<String> checkQueue() {
-        List<ProjectEntity> projectsList = bm.getProjectsToCompile();
+        List<ProjectEntity> projectsList = bm.getProjectQueue();
         List<String> projectIds = new LinkedList<>();
 
-        for (ProjectEntity project : projectsList){
+        for (ProjectEntity project : projectsList) {
             projectIds.add("Project Id: " + project.getId());
         }
 
@@ -356,15 +360,39 @@ public class DefaultProjectService implements ProjectService {
     public List<String> listCompiling() {
         Map<Long, Thread> projectsList = bm.getCompilationThreads();
         List<String> projectIds = new LinkedList<>();
-        Long[] idSet = projectsList.keySet().toArray(new Long[0]);
-        for (Long id : idSet){
+        Long[] ids = projectsList.keySet().toArray(new Long[0]);
+        for (Long id : ids) {
             projectIds.add("Project Id: " + id);
         }
 
         return projectIds;
     }
 
+    @Async("asyncExecutor")
+    public void scheduleBuild(Long projectId, long initialDelay, TimeUnit unit) {
+        Runnable buildTask = () -> {
+            try {
+                compileProject(projectId, false);
+            } catch (Exception e) {
+                System.err.println("Error in compileProject for project ID " + projectId + ": " + e.getMessage());
+            }
+        };
+        scheduler.schedule(buildTask, initialDelay, unit);
+        System.out.println("Scheduled a build for project ID " + projectId + " to start after " + initialDelay + " " + unit.toString().toLowerCase());
+    }
 
+    @PreDestroy
+    public void shutDown() {
+        scheduler.shutdown();
+        Helper.deleteTempFolder();
+        try {
+            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+        }
+    }
 }
 
 
