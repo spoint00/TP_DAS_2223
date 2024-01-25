@@ -28,11 +28,7 @@ public class Helper {
 
     public final static Path tempPath = Paths.get("./temp");
 
-    public final static String unsupportedLanguage = "Unsupported language";
-    public final static String typeC = "C";
-    public final static String typeCPP = "CPP";
-    public final static String typePython = "Python";
-//    public final static String typeJava = "Java";
+
 
 
     private static final FileEntityFactory fileEntityFactory = new ConcreteFileEntityFactory();
@@ -50,7 +46,7 @@ public class Helper {
 
             if (fileName != null) {
                 if (fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h") ||
-                        fileName.endsWith(".py") /*|| fileName.endsWith(".java")*/) {
+                        fileName.endsWith(".py") || fileName.endsWith(".java")) {
                     FileEntity fileEntity = fileEntityFactory.createFileEntity(fileName, fileContent);
                     fileEntities.add(fileEntity);
                 }

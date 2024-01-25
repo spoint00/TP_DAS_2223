@@ -8,6 +8,7 @@ import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
+import isec.tp.das.onlinecompiler.util.LANGUAGE;
 import jakarta.annotation.PreDestroy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
@@ -193,32 +194,45 @@ public class DefaultProjectService implements ProjectService {
 
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         String projectName = project.getName().replace(" ", "_");
-        Path exePath = Helper.tempPath.resolve(projectName).resolve(projectName);
+        Path projectFolder = Helper.tempPath.resolve(projectName);
+        Path exePath = projectFolder.resolve(projectName);
         List<String> filesPaths = Helper.getFilesPathsAsStrings(projectName, project.getCodeFiles());
 
         if (filesPaths.isEmpty()) {
             return updateProjectResult(project, false, Helper.noFilesToCompile, Helper.noOutput);
         }
 
-        String language = determineLanguage(filesPaths);
+        LANGUAGE language = determineLanguage(filesPaths);
         ProcessBuilder compilerProcessBuilder;
 
         switch (language) {
-            case Helper.typeC:
+            case LANGUAGE.C:
                 compilerProcessBuilder = new ProcessBuilder("gcc", "-o", exePath.toString());
                 break;
-            case Helper.typeCPP:
+            case LANGUAGE.CPP:
                 compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
                 break;
-            case Helper.typePython:
+            case LANGUAGE.PYTHON:
+                // necessario instalar pyinstaller
                 compilerProcessBuilder = new ProcessBuilder("pyinstaller", "--onefile", exePath.toString() + ".py");
-//                compilerProcessBuilder.directory(exePath.getParent().toFile()); // Set the working directory
                 break;
-//            case Helper.typeJava:
-//                compilerProcessBuilder = new ProcessBuilder("javac", "-d", exePath.toString());
-//                break;
+            case LANGUAGE.JAVA:
+                // Compile Java source files
+                compilerProcessBuilder = new ProcessBuilder("javac", "-d", projectFolder.toString());
+                compilerProcessBuilder.directory(exePath.getParent().toFile());
+
+                // Create the JAR file
+                ProcessBuilder jarProcessBuilder = new ProcessBuilder("jar", "cvfe", exePath.toString() + ".jar", "-C", exePath.getParent().toString(), ".");
+                Process jarProcess = jarProcessBuilder.start();
+                int jarExitCode = jarProcess.waitFor();
+
+                if (jarExitCode != 0) {
+                    // Handle JAR creation failure
+                    return updateProjectResult(project, false, "JAR creation failed. Exit code: " + jarExitCode, Helper.noOutput);
+                }
+                break;
             default:
-                return updateProjectResult(project, false, Helper.unsupportedLanguage, Helper.noOutput);
+                return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
         }
 
         compilerProcessBuilder.command().addAll(filesPaths);
@@ -247,17 +261,17 @@ public class DefaultProjectService implements ProjectService {
         }
     }
 
-    private String determineLanguage(List<String> filesPaths) {
+    private LANGUAGE determineLanguage(List<String> filesPaths) {
         if (filesPaths.stream().anyMatch(path -> path.endsWith(".c"))) {
-            return Helper.typeC;
+            return LANGUAGE.C;
         } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".cpp"))) {
-            return Helper.typeCPP;
+            return LANGUAGE.CPP;
         } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".py"))) {
-            return Helper.typePython;
-//        } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".java"))) {
-//            return Helper.typeJava;
+            return LANGUAGE.PYTHON;
+        } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".java"))) {
+            return LANGUAGE.JAVA;
         } else {
-            return Helper.unsupportedLanguage;
+            return LANGUAGE.UNSUPPORTED_LANGUAGE;
         }
     }
 
@@ -424,7 +438,7 @@ public class DefaultProjectService implements ProjectService {
         scheduler.shutdown();
         Helper.deleteTempFolder();
         try {
-            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
         } catch (InterruptedException e) {
