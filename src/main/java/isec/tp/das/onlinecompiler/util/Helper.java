@@ -17,15 +17,23 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public class Helper {
-    public static String defaultMessage = "Default message";
-    public static String defaultOutput = "Default output";
-    public static String projectNotFound = "Project not found";
-    public static String noOutput = "No output";
-    public static String projectNotInQueue = "Project not in queue";
-    public static String noFilesToCompile = "No source files to compile";
-    public static String projectNotCompiled = "Compile project successfully before running";
-    public static String queueIsEmpty = "Project queue is empty";
-    public static Path tempPath = Paths.get("./temp");
+    public final static String defaultMessage = "Default message";
+    public final static String defaultOutput = "Default output";
+    public final static String projectNotFound = "Project not found";
+    public final static String noOutput = "No output";
+    public final static String projectNotInQueue = "Project not in queue";
+    public final static String noFilesToCompile = "No source files to compile";
+    public final static String projectNotCompiled = "Compile project successfully before running";
+    public final static String queueIsEmpty = "Project queue is empty";
+
+    public final static Path tempPath = Paths.get("./temp");
+
+    public final static String unsupportedLanguage = "Unsupported language";
+    public final static String typeC = "C";
+    public final static String typeCPP = "CPP";
+    public final static String typePython = "Python";
+//    public final static String typeJava = "Java";
+
 
     private static final FileEntityFactory fileEntityFactory = new ConcreteFileEntityFactory();
 
@@ -40,13 +48,11 @@ public class Helper {
             String fileName = multipartFile.getOriginalFilename();
             byte[] fileContent = multipartFile.getBytes();
 
-            if (fileName != null){
-                if (fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h")) {
+            if (fileName != null) {
+                if (fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h") ||
+                        fileName.endsWith(".py") /*|| fileName.endsWith(".java")*/) {
                     FileEntity fileEntity = fileEntityFactory.createFileEntity(fileName, fileContent);
                     fileEntities.add(fileEntity);
-                } else {
-                    // You can either throw an exception or handle it based on your application's needs
-                    throw new IllegalArgumentException("Invalid file type: " + fileName);
                 }
             }
         }

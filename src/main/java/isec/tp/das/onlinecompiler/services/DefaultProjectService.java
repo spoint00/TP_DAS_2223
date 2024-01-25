@@ -55,6 +55,10 @@ public class DefaultProjectService implements ProjectService {
 
     public ProjectEntity createProject(String name, String description, List<MultipartFile> files) throws IOException {
         List<FileEntity> fileEntities = Helper.createFileEntities(files);
+
+        if (fileEntities.isEmpty())
+            return null;
+
         ResultEntity resultEntity = resultFactory.createResultEntity();
         ProjectEntity project = projectFactory.createProjectEntity(name, description, fileEntities, resultEntity);
 
@@ -172,7 +176,7 @@ public class DefaultProjectService implements ProjectService {
                     bm.addThread(project.getId(), Thread.currentThread());
 
                     // only for TESTING
-                    //Thread.sleep(3000);
+                    //Thread.sleep(5000);
                     ResultEntity result = startCompilation(project);
 
                     future.complete(result);
@@ -196,7 +200,27 @@ public class DefaultProjectService implements ProjectService {
             return updateProjectResult(project, false, Helper.noFilesToCompile, Helper.noOutput);
         }
 
-        ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
+        String language = determineLanguage(filesPaths);
+        ProcessBuilder compilerProcessBuilder;
+
+        switch (language) {
+            case Helper.typeC:
+                compilerProcessBuilder = new ProcessBuilder("gcc", "-o", exePath.toString());
+                break;
+            case Helper.typeCPP:
+                compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
+                break;
+            case Helper.typePython:
+                compilerProcessBuilder = new ProcessBuilder("pyinstaller", "--onefile", exePath.toString() + ".py");
+//                compilerProcessBuilder.directory(exePath.getParent().toFile()); // Set the working directory
+                break;
+//            case Helper.typeJava:
+//                compilerProcessBuilder = new ProcessBuilder("javac", "-d", exePath.toString());
+//                break;
+            default:
+                return updateProjectResult(project, false, Helper.unsupportedLanguage, Helper.noOutput);
+        }
+
         compilerProcessBuilder.command().addAll(filesPaths);
 
         // redirect the error stream to be able to read the output and/or the error
@@ -220,6 +244,20 @@ public class DefaultProjectService implements ProjectService {
             String failureMessage = "Compilation failed. Exit code: " + exitCode;
             updateProjectBuildStatus(project, FAILURE_BUILD);
             return updateProjectResult(project, false, failureMessage, output);
+        }
+    }
+
+    private String determineLanguage(List<String> filesPaths) {
+        if (filesPaths.stream().anyMatch(path -> path.endsWith(".c"))) {
+            return Helper.typeC;
+        } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".cpp"))) {
+            return Helper.typeCPP;
+        } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".py"))) {
+            return Helper.typePython;
+//        } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".java"))) {
+//            return Helper.typeJava;
+        } else {
+            return Helper.unsupportedLanguage;
         }
     }
 
@@ -256,7 +294,7 @@ public class DefaultProjectService implements ProjectService {
         }
 
         if (project.getBuildStatus() != SUCCESS_BUILD) {
-            return resultFactory.createResultEntity(false, Helper.projectNotCompiled, Helper.noOutput);
+            return updateProjectResult(project, false, Helper.projectNotCompiled, Helper.noOutput);
         }
 
         // replace whitespaces with underscore
