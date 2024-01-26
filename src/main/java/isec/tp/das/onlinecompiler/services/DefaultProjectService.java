@@ -8,6 +8,7 @@ import isec.tp.das.onlinecompiler.services.factories.ProjectEntityFactory;
 import isec.tp.das.onlinecompiler.services.factories.ResultEntityFactory;
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
 import isec.tp.das.onlinecompiler.util.Helper;
+import isec.tp.das.onlinecompiler.util.LANGUAGE;
 import jakarta.annotation.PreDestroy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,10 +56,29 @@ public class DefaultProjectService implements ProjectService {
 
     public ProjectEntity createProject(String name, String description, List<MultipartFile> files) throws IOException {
         List<FileEntity> fileEntities = Helper.createFileEntities(files);
+
+        if (fileEntities.isEmpty())
+            return null;
+
+        LANGUAGE language = determineLanguage(fileEntities);
         ResultEntity resultEntity = resultFactory.createResultEntity();
-        ProjectEntity project = projectFactory.createProjectEntity(name, description, fileEntities, resultEntity);
+        ProjectEntity project = projectFactory.createProjectEntity(name, description, fileEntities, resultEntity, language);
 
         return projectRepository.save(project);
+    }
+
+    private LANGUAGE determineLanguage(List<FileEntity> fileEntities) {
+        if (fileEntities.stream().anyMatch(fileEntity -> fileEntity.getName().endsWith(".c"))) {
+            return LANGUAGE.C;
+        } else if (fileEntities.stream().anyMatch(fileEntity -> fileEntity.getName().endsWith(".cpp"))) {
+            return LANGUAGE.CPP;
+        } else if (fileEntities.stream().anyMatch(fileEntity -> fileEntity.getName().endsWith(".py"))) {
+            return LANGUAGE.PYTHON;
+        } else if (fileEntities.stream().anyMatch(fileEntity -> fileEntity.getName().endsWith(".java"))) {
+            return LANGUAGE.JAVA;
+        } else {
+            return LANGUAGE.UNSUPPORTED_LANGUAGE;
+        }
     }
 
     public ProjectEntity updateProject(Long projectId, String name, String description, List<MultipartFile> files) throws IOException {
@@ -171,7 +191,7 @@ public class DefaultProjectService implements ProjectService {
 
                     bm.addThread(project.getId(), Thread.currentThread());
                     // only for TESTING
-                    //Thread.sleep(3000);
+                    //Thread.sleep(5000);
                     ResultEntity result = startCompilation(project);
                     future.complete(result);
                     compilationFinished(project, result);
@@ -187,7 +207,8 @@ public class DefaultProjectService implements ProjectService {
 
     private ResultEntity startCompilation(ProjectEntity project) throws IOException, InterruptedException {
         String projectName = project.getName().replace(" ", "_");
-        Path exePath = Helper.tempPath.resolve(projectName).resolve(projectName);
+        Path projectFolder = Helper.tempPath.resolve(projectName);
+        Path exePath = projectFolder.resolve(projectName);
         List<String> filesPaths = Helper.getFilesPathsAsStrings(projectName, project.getCodeFiles());
 
         if (filesPaths.isEmpty()) {
@@ -195,32 +216,64 @@ public class DefaultProjectService implements ProjectService {
             return updateProjectResult(project, false, Helper.noFilesToCompile, Helper.noOutput);
         }
 
-        ProcessBuilder compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
-        compilerProcessBuilder.command().addAll(filesPaths);
+        ProcessBuilder compilerProcessBuilder = createCompilerProcessBuilder(project.getLanguage(), exePath, filesPaths);
+        if (compilerProcessBuilder == null) {
+            return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
+        }
 
-        // redirect the error stream to be able to read the output and/or the error
-        compilerProcessBuilder.redirectErrorStream(true);
-        Process compilerProcess = compilerProcessBuilder.start();
-
-        int exitCode = compilerProcess.waitFor();
-
-        // read the output from the process
-        String output = readProcessOutput(compilerProcess);
-        if (output.isBlank())
-            output = Helper.noOutput;
-
+        ResultEntity result = executeProcess(project, compilerProcessBuilder, SUCCESS_BUILD, FAILURE_BUILD, "Compilation successful", "Compilation failed");
         Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
 
+        return result;
+    }
+
+    private ProcessBuilder createCompilerProcessBuilder(LANGUAGE language, Path exePath, List<String> filesPaths) {
+        ProcessBuilder compilerProcessBuilder;
+
+        switch (language) {
+            case C:
+                compilerProcessBuilder = new ProcessBuilder("gcc", "-o", exePath.toString());
+                break;
+            case CPP:
+                compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
+                break;
+            case JAVA:
+                exePath = Path.of(filesPaths.getFirst());
+                compilerProcessBuilder = new ProcessBuilder("javac", exePath.toString());
+                break;
+            default:
+                return null;
+        }
+
+        compilerProcessBuilder.command().addAll(filesPaths);
+        // redirect the error stream to be able to read the output and/or the error
+        compilerProcessBuilder.redirectErrorStream(true);
+
+        return compilerProcessBuilder;
+    }
+
+    private ResultEntity executeProcess(ProjectEntity project, ProcessBuilder processBuilder,
+                                        BUILDSTATUS successBuildStatus, BUILDSTATUS failureBuildStatus,
+                                        String successMessage, String failureMessage) throws IOException, InterruptedException {
+        Process process = processBuilder.start();
+        int exitCode = process.waitFor();
+        String output = readProcessOutput(process);
+
+        if (output.isBlank()) {
+            output = Helper.noOutput;
+        }
+
+        Helper.cleanupTempFiles(Helper.tempPath.resolve(project.getName().replace(" ", "_")));
+
         if (exitCode == 0) {
-            String successMessage = "Compilation successful.";
-            updateProjectBuildStatus(project, SUCCESS_BUILD);
+            updateProjectBuildStatus(project, successBuildStatus);
             return updateProjectResult(project, true, successMessage, output);
         } else {
-            String failureMessage = "Compilation failed. Exit code: " + exitCode;
-            updateProjectBuildStatus(project, FAILURE_BUILD);
-            return updateProjectResult(project, false, failureMessage, output);
+            updateProjectBuildStatus(project, failureBuildStatus);
+            return updateProjectResult(project, false, failureMessage + ". Exit code: " + exitCode, output);
         }
     }
+
 
     private void compilationFinished(ProjectEntity project, ResultEntity result) {
         bm.compilationCompleted(project);
@@ -255,39 +308,40 @@ public class DefaultProjectService implements ProjectService {
         }
 
         if (project.getBuildStatus() != SUCCESS_BUILD) {
-            return resultFactory.createResultEntity(false, Helper.projectNotCompiled, Helper.noOutput);
+            return updateProjectResult(project, false, Helper.projectNotCompiled, Helper.noOutput);
         }
 
+        ProcessBuilder runnerProcessBuilder = createRunnerProcessBuilder(project);
+        if (runnerProcessBuilder == null) {
+            return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
+        }
+
+        return executeProcess(project, runnerProcessBuilder, SUCCESS_RUN, FAILURE_RUN, "Run successful", "Run failed");
+    }
+
+    private ProcessBuilder createRunnerProcessBuilder(ProjectEntity project) {
         // replace whitespaces with underscore
         String projectName = project.getName().replace(" ", "_");
-        Path exePath = Helper.tempPath.resolve(projectName).resolve(projectName);
+        Path projectFolder = Helper.tempPath.resolve(projectName);
+        ProcessBuilder runnerProcessBuilder;
 
-        ProcessBuilder runnerProcessBuilder = new ProcessBuilder(exePath.toString());
-
+        switch (project.getLanguage()) {
+            case C:
+            case CPP:
+                Path exePath = projectFolder.resolve(projectName);
+                runnerProcessBuilder = new ProcessBuilder(exePath.toString());
+                break;
+            case JAVA:
+                String exe = project.getCodeFiles().getFirst().getName().replace(".java", "");
+                runnerProcessBuilder = new ProcessBuilder("java", exe);
+                runnerProcessBuilder.directory(projectFolder.toFile());
+                break;
+            default:
+                return null;
+        }
         // redirect the error stream to be able to read the output and/or the error
         runnerProcessBuilder.redirectErrorStream(true);
-        Process runnerProcess = runnerProcessBuilder.start();
-
-        int exitCode = runnerProcess.waitFor();
-
-        // read the output from the process
-        String output = readProcessOutput(runnerProcess);
-        if (output.isBlank())
-            output = Helper.noOutput;
-
-        if (exitCode == 0) {
-            String successMessage = "Run successful.";
-
-            updateProjectBuildStatus(project, SUCCESS_RUN);
-
-            return updateProjectResult(project, true, successMessage, output);
-        } else {
-            String failureMessage = "Run failed. Exit code: " + exitCode;
-
-            updateProjectBuildStatus(project, FAILURE_RUN);
-
-            return updateProjectResult(project, false, failureMessage, output);
-        }
+        return runnerProcessBuilder;
     }
 
     // read the output from the process
@@ -385,7 +439,7 @@ public class DefaultProjectService implements ProjectService {
         scheduler.shutdown();
         Helper.deleteTempFolder();
         try {
-            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
         } catch (InterruptedException e) {

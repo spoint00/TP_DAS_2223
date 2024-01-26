@@ -53,6 +53,9 @@ public class ProjectRestController {
         try {
             ProjectEntity project = projectDecorator.createProject(name, description, files);
 
+            if (project == null)
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+
             return ResponseEntity.status(HttpStatus.CREATED).body(project);
         } catch (IOException e) {
             e.printStackTrace();
