@@ -127,6 +127,6 @@ public class ProjectEntity {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, description, buildStatus, codeFiles, resultEntity, saveOutput);
+        return Objects.hash(id, name, description, buildStatus, codeFiles, resultEntity, saveOutput, language);
     }
 }

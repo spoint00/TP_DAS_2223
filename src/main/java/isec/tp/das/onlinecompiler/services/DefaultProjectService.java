@@ -221,7 +221,9 @@ public class DefaultProjectService implements ProjectService {
             return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
         }
 
-        ResultEntity result = executeProcess(project, compilerProcessBuilder, SUCCESS_BUILD, FAILURE_BUILD, "Compilation successful", "Compilation failed");
+        ResultEntity result = executeProcess(project, compilerProcessBuilder, SUCCESS_BUILD, FAILURE_BUILD,
+                "Compilation successful for project id = " + project.getId(),
+                "Compilation failed for project id = " + project.getId());
         Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
 
         return result;
@@ -262,8 +264,6 @@ public class DefaultProjectService implements ProjectService {
         if (output.isBlank()) {
             output = Helper.noOutput;
         }
-
-        Helper.cleanupTempFiles(Helper.tempPath.resolve(project.getName().replace(" ", "_")));
 
         if (exitCode == 0) {
             updateProjectBuildStatus(project, successBuildStatus);

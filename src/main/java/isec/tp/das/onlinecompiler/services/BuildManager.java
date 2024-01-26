@@ -3,10 +3,7 @@ package isec.tp.das.onlinecompiler.services;
 import isec.tp.das.onlinecompiler.models.ProjectEntity;
 import isec.tp.das.onlinecompiler.models.ResultEntity;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static isec.tp.das.onlinecompiler.util.BUILDSTATUS.AWAITING_QUEUE;
@@ -30,8 +27,10 @@ public class BuildManager {
     }
 
     public void addProject(ProjectEntity project) {
-        project.setBuildStatus(IN_QUEUE);
-        projectQueue.add(project);
+        if (!projectQueue.contains(project)){
+            project.setBuildStatus(IN_QUEUE);
+            projectQueue.add(project);
+        }
     }
 
     public ProjectEntity processNextProject() {
