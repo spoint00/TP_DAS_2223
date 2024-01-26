@@ -167,9 +167,8 @@ public class DefaultProjectService implements ProjectService {
                             return;
                         }
                     }
-                    if(project.getCodeFiles().isEmpty()){
-                        updateProjectBuildStatus(project, FAILURE_BUILD);
-                    }
+                    updateProjectBuildStatus(project, COMPILATION_IN_PROGRESS);
+
                     bm.addThread(project.getId(), Thread.currentThread());
                     // only for TESTING
                     //Thread.sleep(3000);
@@ -192,6 +191,7 @@ public class DefaultProjectService implements ProjectService {
         List<String> filesPaths = Helper.getFilesPathsAsStrings(projectName, project.getCodeFiles());
 
         if (filesPaths.isEmpty()) {
+            updateProjectBuildStatus(project, FAILURE_BUILD);
             return updateProjectResult(project, false, Helper.noFilesToCompile, Helper.noOutput);
         }
 
