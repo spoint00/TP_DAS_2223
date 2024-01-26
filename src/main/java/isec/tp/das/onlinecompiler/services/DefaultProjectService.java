@@ -60,10 +60,25 @@ public class DefaultProjectService implements ProjectService {
         if (fileEntities.isEmpty())
             return null;
 
+        LANGUAGE language = determineLanguage(fileEntities);
         ResultEntity resultEntity = resultFactory.createResultEntity();
-        ProjectEntity project = projectFactory.createProjectEntity(name, description, fileEntities, resultEntity);
+        ProjectEntity project = projectFactory.createProjectEntity(name, description, fileEntities, resultEntity, language);
 
         return projectRepository.save(project);
+    }
+
+    private LANGUAGE determineLanguage(List<FileEntity> fileEntities) {
+        if (fileEntities.stream().anyMatch(fileEntity -> fileEntity.getName().endsWith(".c"))) {
+            return LANGUAGE.C;
+        } else if (fileEntities.stream().anyMatch(fileEntity -> fileEntity.getName().endsWith(".cpp"))) {
+            return LANGUAGE.CPP;
+        } else if (fileEntities.stream().anyMatch(fileEntity -> fileEntity.getName().endsWith(".py"))) {
+            return LANGUAGE.PYTHON;
+        } else if (fileEntities.stream().anyMatch(fileEntity -> fileEntity.getName().endsWith(".java"))) {
+            return LANGUAGE.JAVA;
+        } else {
+            return LANGUAGE.UNSUPPORTED_LANGUAGE;
+        }
     }
 
     public ProjectEntity updateProject(Long projectId, String name, String description, List<MultipartFile> files) throws IOException {
@@ -202,51 +217,17 @@ public class DefaultProjectService implements ProjectService {
             return updateProjectResult(project, false, Helper.noFilesToCompile, Helper.noOutput);
         }
 
-        LANGUAGE language = determineLanguage(filesPaths);
-        ProcessBuilder compilerProcessBuilder;
+        ProcessBuilder compilerProcessBuilder = createCompilerProcessBuilder(project.getLanguage(), exePath, filesPaths);
+        if (compilerProcessBuilder == null)
+            return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
 
-        switch (language) {
-            case LANGUAGE.C:
-                compilerProcessBuilder = new ProcessBuilder("gcc", "-o", exePath.toString());
-                break;
-            case LANGUAGE.CPP:
-                compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
-                break;
-            case LANGUAGE.PYTHON:
-                // necessario instalar pyinstaller
-                compilerProcessBuilder = new ProcessBuilder("pyinstaller", "--onefile", exePath.toString() + ".py");
-                break;
-            case LANGUAGE.JAVA:
-                // Compile Java source files
-                compilerProcessBuilder = new ProcessBuilder("javac", "-d", projectFolder.toString());
-                compilerProcessBuilder.directory(exePath.getParent().toFile());
-
-                // Create the JAR file
-                ProcessBuilder jarProcessBuilder = new ProcessBuilder("jar", "cvfe", exePath.toString() + ".jar", "-C", exePath.getParent().toString(), ".");
-                Process jarProcess = jarProcessBuilder.start();
-                int jarExitCode = jarProcess.waitFor();
-
-                if (jarExitCode != 0) {
-                    // Handle JAR creation failure
-                    return updateProjectResult(project, false, "JAR creation failed. Exit code: " + jarExitCode, Helper.noOutput);
-                }
-                break;
-            default:
-                return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
-        }
-
-        compilerProcessBuilder.command().addAll(filesPaths);
-
-        // redirect the error stream to be able to read the output and/or the error
-        compilerProcessBuilder.redirectErrorStream(true);
         Process compilerProcess = compilerProcessBuilder.start();
 
         int exitCode = compilerProcess.waitFor();
-
-        // read the output from the process
         String output = readProcessOutput(compilerProcess);
-        if (output.isBlank())
+        if (output.isBlank()) {
             output = Helper.noOutput;
+        }
 
         Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
 
@@ -261,18 +242,29 @@ public class DefaultProjectService implements ProjectService {
         }
     }
 
-    private LANGUAGE determineLanguage(List<String> filesPaths) {
-        if (filesPaths.stream().anyMatch(path -> path.endsWith(".c"))) {
-            return LANGUAGE.C;
-        } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".cpp"))) {
-            return LANGUAGE.CPP;
-        } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".py"))) {
-            return LANGUAGE.PYTHON;
-        } else if (filesPaths.stream().anyMatch(path -> path.endsWith(".java"))) {
-            return LANGUAGE.JAVA;
-        } else {
-            return LANGUAGE.UNSUPPORTED_LANGUAGE;
+    private ProcessBuilder createCompilerProcessBuilder(LANGUAGE language, Path exePath, List<String> filesPaths) {
+        ProcessBuilder compilerProcessBuilder;
+
+        switch (language) {
+            case C:
+                compilerProcessBuilder = new ProcessBuilder("gcc", "-o", exePath.toString());
+                break;
+            case CPP:
+                compilerProcessBuilder = new ProcessBuilder("g++", "-o", exePath.toString());
+                break;
+            case JAVA:
+                exePath = Path.of(filesPaths.getFirst());
+                compilerProcessBuilder = new ProcessBuilder("javac", exePath.toString());
+                break;
+            default:
+                return null;
         }
+
+        compilerProcessBuilder.command().addAll(filesPaths);
+        // redirect the error stream to be able to read the output and/or the error
+        compilerProcessBuilder.redirectErrorStream(true);
+
+        return compilerProcessBuilder;
     }
 
     private void compilationFinished(ProjectEntity project, ResultEntity result) {
@@ -311,36 +303,55 @@ public class DefaultProjectService implements ProjectService {
             return updateProjectResult(project, false, Helper.projectNotCompiled, Helper.noOutput);
         }
 
-        // replace whitespaces with underscore
-        String projectName = project.getName().replace(" ", "_");
-        Path exePath = Helper.tempPath.resolve(projectName).resolve(projectName);
+        ProcessBuilder runnerProcessBuilder = createRunnerProcessBuilder(project);
+        if (runnerProcessBuilder == null) {
+            return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
+        }
 
-        ProcessBuilder runnerProcessBuilder = new ProcessBuilder(exePath.toString());
-
-        // redirect the error stream to be able to read the output and/or the error
-        runnerProcessBuilder.redirectErrorStream(true);
         Process runnerProcess = runnerProcessBuilder.start();
 
         int exitCode = runnerProcess.waitFor();
 
         // read the output from the process
         String output = readProcessOutput(runnerProcess);
-        if (output.isBlank())
+        if (output.isBlank()) {
             output = Helper.noOutput;
+        }
 
         if (exitCode == 0) {
             String successMessage = "Run successful.";
-
             updateProjectBuildStatus(project, SUCCESS_RUN);
-
             return updateProjectResult(project, true, successMessage, output);
         } else {
             String failureMessage = "Run failed. Exit code: " + exitCode;
-
             updateProjectBuildStatus(project, FAILURE_RUN);
-
             return updateProjectResult(project, false, failureMessage, output);
         }
+    }
+
+    private ProcessBuilder createRunnerProcessBuilder(ProjectEntity project) {
+        // replace whitespaces with underscore
+        String projectName = project.getName().replace(" ", "_");
+        Path projectFolder = Helper.tempPath.resolve(projectName);
+        ProcessBuilder runnerProcessBuilder;
+
+        switch (project.getLanguage()) {
+            case C:
+            case CPP:
+                Path exePath = projectFolder.resolve(projectName);
+                runnerProcessBuilder = new ProcessBuilder(exePath.toString());
+                break;
+            case JAVA:
+                String exe = project.getCodeFiles().getFirst().getName().replace(".java", "");
+                runnerProcessBuilder = new ProcessBuilder("java", exe);
+                runnerProcessBuilder.directory(projectFolder.toFile());
+                break;
+            default:
+                return null;
+        }
+        // redirect the error stream to be able to read the output and/or the error
+        runnerProcessBuilder.redirectErrorStream(true);
+        return runnerProcessBuilder;
     }
 
     // read the output from the process

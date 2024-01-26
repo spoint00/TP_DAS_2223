@@ -1,6 +1,7 @@
 package isec.tp.das.onlinecompiler.models;
 
 import isec.tp.das.onlinecompiler.util.BUILDSTATUS;
+import isec.tp.das.onlinecompiler.util.LANGUAGE;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -23,6 +24,12 @@ public class ProjectEntity {
     @Column(nullable = false)
     private BUILDSTATUS buildStatus;
 
+    @Column(nullable = false)
+    private boolean saveOutput;
+
+    @Column(nullable = false)
+    private LANGUAGE language;
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id")
     private List<FileEntity> codeFiles;
@@ -31,21 +38,19 @@ public class ProjectEntity {
     @JoinColumn(name = "result_id")
     private ResultEntity resultEntity;
 
-    @Column(nullable = false)
-    private boolean saveOutput;
-
     public ProjectEntity() {
         this.buildStatus = AWAITING_QUEUE;
         this.saveOutput = false;
     }
 
-    public ProjectEntity(String name, String description, List<FileEntity> codeFiles, ResultEntity resultEntity) {
+    public ProjectEntity(String name, String description, List<FileEntity> codeFiles, ResultEntity resultEntity, LANGUAGE language) {
         this.name = name;
         this.description = description;
         this.codeFiles = codeFiles;
         this.buildStatus = AWAITING_QUEUE;
         this.resultEntity = resultEntity;
         this.saveOutput = false;
+        this.language = language;
     }
 
     public Long getId() {
@@ -102,6 +107,14 @@ public class ProjectEntity {
 
     public void setSaveOutput(boolean saveOutput) {
         this.saveOutput = saveOutput;
+    }
+
+    public LANGUAGE getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(LANGUAGE language) {
+        this.language = language;
     }
 
     @Override

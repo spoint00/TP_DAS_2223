@@ -90,7 +90,7 @@ public class Helper {
     // clean source code files from temp folder
     public static void cleanupTempFiles(Path tempDirectoryPath) throws IOException {
         try (Stream<Path> paths = Files.walk(tempDirectoryPath)) {
-            paths.filter(path -> !path.toString().endsWith(".exe"))
+            paths.filter(path -> !path.toString().endsWith(".exe") && !path.toString().endsWith(".class"))
                     .map(Path::toFile)
                     .forEach(File::delete);
         }
