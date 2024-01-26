@@ -218,28 +218,14 @@ public class DefaultProjectService implements ProjectService {
         }
 
         ProcessBuilder compilerProcessBuilder = createCompilerProcessBuilder(project.getLanguage(), exePath, filesPaths);
-        if (compilerProcessBuilder == null)
+        if (compilerProcessBuilder == null) {
             return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
-
-        Process compilerProcess = compilerProcessBuilder.start();
-
-        int exitCode = compilerProcess.waitFor();
-        String output = readProcessOutput(compilerProcess);
-        if (output.isBlank()) {
-            output = Helper.noOutput;
         }
 
+        ResultEntity result = executeProcess(project, compilerProcessBuilder, SUCCESS_BUILD, FAILURE_BUILD, "Compilation successful", "Compilation failed");
         Helper.cleanupTempFiles(Helper.tempPath.resolve(projectName));
 
-        if (exitCode == 0) {
-            String successMessage = "Compilation successful.";
-            updateProjectBuildStatus(project, SUCCESS_BUILD);
-            return updateProjectResult(project, true, successMessage, output);
-        } else {
-            String failureMessage = "Compilation failed. Exit code: " + exitCode;
-            updateProjectBuildStatus(project, FAILURE_BUILD);
-            return updateProjectResult(project, false, failureMessage, output);
-        }
+        return result;
     }
 
     private ProcessBuilder createCompilerProcessBuilder(LANGUAGE language, Path exePath, List<String> filesPaths) {
@@ -266,6 +252,29 @@ public class DefaultProjectService implements ProjectService {
 
         return compilerProcessBuilder;
     }
+
+    private ResultEntity executeProcess(ProjectEntity project, ProcessBuilder processBuilder,
+                                        BUILDSTATUS successBuildStatus, BUILDSTATUS failureBuildStatus,
+                                        String successMessage, String failureMessage) throws IOException, InterruptedException {
+        Process process = processBuilder.start();
+        int exitCode = process.waitFor();
+        String output = readProcessOutput(process);
+
+        if (output.isBlank()) {
+            output = Helper.noOutput;
+        }
+
+        Helper.cleanupTempFiles(Helper.tempPath.resolve(project.getName().replace(" ", "_")));
+
+        if (exitCode == 0) {
+            updateProjectBuildStatus(project, successBuildStatus);
+            return updateProjectResult(project, true, successMessage, output);
+        } else {
+            updateProjectBuildStatus(project, failureBuildStatus);
+            return updateProjectResult(project, false, failureMessage + ". Exit code: " + exitCode, output);
+        }
+    }
+
 
     private void compilationFinished(ProjectEntity project, ResultEntity result) {
         bm.compilationCompleted(project);
@@ -308,25 +317,7 @@ public class DefaultProjectService implements ProjectService {
             return updateProjectResult(project, false, LANGUAGE.UNSUPPORTED_LANGUAGE.name().toLowerCase(), Helper.noOutput);
         }
 
-        Process runnerProcess = runnerProcessBuilder.start();
-
-        int exitCode = runnerProcess.waitFor();
-
-        // read the output from the process
-        String output = readProcessOutput(runnerProcess);
-        if (output.isBlank()) {
-            output = Helper.noOutput;
-        }
-
-        if (exitCode == 0) {
-            String successMessage = "Run successful.";
-            updateProjectBuildStatus(project, SUCCESS_RUN);
-            return updateProjectResult(project, true, successMessage, output);
-        } else {
-            String failureMessage = "Run failed. Exit code: " + exitCode;
-            updateProjectBuildStatus(project, FAILURE_RUN);
-            return updateProjectResult(project, false, failureMessage, output);
-        }
+        return executeProcess(project, runnerProcessBuilder, SUCCESS_RUN, FAILURE_RUN, "Run successful", "Run failed");
     }
 
     private ProcessBuilder createRunnerProcessBuilder(ProjectEntity project) {
