@@ -27,6 +27,7 @@ public class ProjectEntity {
     @Column(nullable = false)
     private boolean saveOutput;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LANGUAGE language;
 
