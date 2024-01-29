@@ -42,8 +42,6 @@ public class ProjectRestController {
         }
     }
 
-    // TODO: verificaçao: permitir apenas guardar ficheiros com extensao .c, .cpp, .h
-    // TODO: verificaçao: os projetos devem conter pelo menos 1 ficheiro .c ou .cpp
     @PostMapping
     public ResponseEntity<ProjectEntity> createProject(
             @RequestParam("name") String name,

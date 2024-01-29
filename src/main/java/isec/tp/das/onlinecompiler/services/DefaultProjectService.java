@@ -120,7 +120,6 @@ public class DefaultProjectService implements ProjectService {
 
     public boolean deleteProject(Long projectId) {
         if (projectRepository.existsById(projectId)) {
-            // todo: (talvez?) ao fazer delete do projeto pode ser necessario mexer na lista do build manager
             projectRepository.deleteById(projectId);
             return true;
         } else {
